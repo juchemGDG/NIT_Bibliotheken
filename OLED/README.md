@@ -25,7 +25,7 @@ Eine leistungsstarke und benutzerfreundliche MicroPython-Bibliothek zur Ansteuer
 Die Dateien befinden sich bereits im `OLED`-Ordner. Einfach importieren:
 
 ```python
-from OLED import OLED
+from oled import OLED
 
 # Display initialisieren (SSD1306)
 oled = OLED(scl=22, sda=21, chip='ssd1306')
@@ -42,7 +42,7 @@ oled.clear()
 ### Beispiel 1: Einfache Text-Ausgabe
 
 ```python
-from OLED import OLED
+from oled import OLED
 import time
 
 # Initialisierung
@@ -68,7 +68,7 @@ time.sleep(2)
 ### Beispiel 2: Geometrische Formen
 
 ```python
-from OLED import OLED
+from oled import OLED
 import time
 
 oled = OLED(scl=22, sda=21, chip='ssd1306')
@@ -98,7 +98,7 @@ time.sleep(1)
 ### Beispiel 3: ADC-Sensor-Visualisierung (Scatterplot)
 
 ```python
-from OLED import OLED
+from oled import OLED
 from machine import ADC, Pin
 import time
 
@@ -168,7 +168,7 @@ while True:
 ### Beispiel 4: Audio-Visualizer mit draw_bar()
 
 ```python
-from OLED import OLED
+from oled import OLED
 import time
 
 oled = OLED(scl=22, sda=21, chip='ssd1306')
