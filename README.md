@@ -16,7 +16,7 @@ Eine leistungsstarke MicroPython-Bibliothek zur Ansteuerung von OLED-Displays au
 - I2C Interface
 
 **Features:**
-- Einfache Initialisierung: `from OLED import OLED`
+- Einfache Initialisierung: `from oled import OLED`
 - Vollständige Grafik-API (Linien, Kreise, Rechtecke, Text)
 - Datenvisualisierung (`map()`, `progress_bar()`, `draw_bar()`)
 - Zwei integrierte Schriftarten
@@ -24,7 +24,7 @@ Eine leistungsstarke MicroPython-Bibliothek zur Ansteuerung von OLED-Displays au
 
 **Quick Start:**
 ```python
-from OLED import OLED
+from oled import OLED
 
 oled = OLED(scl=22, sda=21, chip='ssd1306')
 oled.print("Hello World", 0, 0)

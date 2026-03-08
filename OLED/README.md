@@ -22,8 +22,7 @@ Eine leistungsstarke und benutzerfreundliche MicroPython-Bibliothek zur Ansteuer
 
 ### Installation
 
-Die Datei oled.py muss heruntergeladen und auf dem ESP32 gespeichert werden. 
-Das folgende Beipsiel zeigt die Implementierung:
+Laden Sie die Datei `oled.py` auf den ESP32 (z.B. nach `/`). Danach können Sie sie direkt importieren:
 
 ```python
 from oled import OLED
@@ -225,7 +224,7 @@ oled = OLED(scl=5, sda=4, chip='ssd1306')  # Alternative Pins
 ### Initialisierung
 
 ```python
-OLED(scl=22, sda=21, chip='ssd1306', enabled=True, i2c_id=0, addr=0x3c)
+OLED(scl=22, sda=21, chip='ssd1306', enabled=True, i2c_id=0, addr=0x3c, logo=True)
 ```
 
 **Parameter:**
@@ -235,6 +234,15 @@ OLED(scl=22, sda=21, chip='ssd1306', enabled=True, i2c_id=0, addr=0x3c)
 - `enabled` (bool): Display aktivieren/deaktivieren (Standard: `True`)
 - `i2c_id` (int): I2C Bus ID (Standard: 0)
 - `addr` (int): I2C Adresse des Displays (Standard: 0x3c)
+- `logo` (bool): Startlogo anzeigen (`True`) oder deaktivieren (`False`) (Standard: `True`)
+
+Beispiel ohne Startlogo:
+
+```python
+from oled import OLED
+
+oled = OLED(scl=22, sda=21, chip='ssd1306', logo=False)
+```
 
 ### Grafik-Methoden
 
