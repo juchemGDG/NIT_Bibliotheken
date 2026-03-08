@@ -15,6 +15,12 @@ furnished to do so, subject to the following conditions:
 
 The above copyright notice and this permission notice shall be included in all
 copies or substantial portions of the Software.
+
+Die Datei wurde mit Hilfe von github Copilot am 8.3.2026 erstellt und von mir angepasst. 
+Es wurden keine externen Bibliotheken verwendet, sondern alle Funktionen selbst implementiert. 
+Das Logo wurde als Binärdaten direkt in den Code eingebettet, um die Abhängigkeit von 
+externen Dateien zu vermeiden. Alle Funktionen sind in der OLED-Klasse enthalten, 
+die sowohl SSD1306 als auch SH1106 Displays unterstützt.
 """
 
 from machine import I2C, Pin
