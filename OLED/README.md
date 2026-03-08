@@ -22,7 +22,8 @@ Eine leistungsstarke und benutzerfreundliche MicroPython-Bibliothek zur Ansteuer
 
 ### Installation
 
-Die Dateien befinden sich bereits im `OLED`-Ordner. Einfach importieren:
+Die Dateien oled.py muss heruntergeladen und auf dem ESP32 gespeichert werden. 
+Das folgende Beipsiel zeigt die Implementierung:
 
 ```python
 from oled import OLED
