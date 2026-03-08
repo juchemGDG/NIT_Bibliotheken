@@ -612,6 +612,38 @@ class OLED:
         self.display.line(x1, y1, x2, y2, color)
         self.display.show()
     
+    def hline(self, x, y, w, color=1):
+        """
+        Zeichnet eine horizontale Linie
+        
+        Args:
+            x: X-Position des Startpunkts
+            y: Y-Position (verläuft horizontal)
+            w: Breite/Länge der Linie
+            color: 1 für an, 0 für aus (Standard: 1)
+        """
+        if not self.enabled:
+            return
+        
+        self.display.hline(x, y, w, color)
+        self.display.show()
+    
+    def vline(self, x, y, h, color=1):
+        """
+        Zeichnet eine vertikale Linie
+        
+        Args:
+            x: X-Position (verläuft vertikal)
+            y: Y-Position des Startpunkts
+            h: Höhe/Länge der Linie
+            color: 1 für an, 0 für aus (Standard: 1)
+        """
+        if not self.enabled:
+            return
+        
+        self.display.vline(x, y, h, color)
+        self.display.show()
+    
     def clear(self):
         """Löscht das Display"""
         if not self.enabled:
@@ -624,6 +656,109 @@ class OLED:
         """Aktualisiert das Display (für manuelle Buffer-Verwaltung)"""
         if not self.enabled:
             return
+        
+        self.display.show()
+    
+    def map(self, value, in_min, in_max, out_min, out_max):
+        """
+        Bildet einen Wert aus einem Eingabebereich auf einen Ausgabebereich ab.
+        Nützlich für Sensordaten (z.B. 10-Bit ADC auf Pixel-Breite abbilden)
+        
+        Args:
+            value: Der abzubildende Wert
+            in_min: Minimaler Eingabewert
+            in_max: Maximaler Eingabewert
+            out_min: Minimaler Ausgabewert
+            out_max: Maximaler Ausgabewert
+        
+        Returns:
+            Die abgebildete Ganzzahl
+        
+        Beispiel:
+            # 10-Bit ADC (0-1023) auf Display-Breite (0-128) abbilden
+            pixel_x = oled.map(adc_value, 0, 1023, 0, 128)
+        """
+        # Constraint Eingabewert
+        if value < in_min:
+            value = in_min
+        if value > in_max:
+            value = in_max
+        
+        # Lineare Abbildung
+        return int((value - in_min) * (out_max - out_min) / (in_max - in_min) + out_min)
+    
+    def progress_bar(self, x, y, width, height, percent, color=1):
+        """
+        Zeichnet einen Fortschrittsbalken (z.B. für Batteriestand oder Download-Progress)
+        
+        Args:
+            x: X-Position der oberen linken Ecke
+            y: Y-Position der oberen linken Ecke
+            width: Breite des Balkens
+            height: Höhe des Balkens
+            percent: Prozentwert (0-100)
+            color: 1 für an, 0 für aus (Standard: 1)
+        
+        Beispiel:
+            oled.progress_bar(10, 30, 108, 10, 75)  # 75% gefüllt
+        """
+        if not self.enabled:
+            return
+        
+        # Constraint Prozentwert
+        if percent < 0:
+            percent = 0
+        if percent > 100:
+            percent = 100
+        
+        # Äußerer Rahmen
+        self.display.rect(x, y, width, height, color)
+        
+        # Gefüllter innerer Bereich
+        fill_width = int((percent / 100.0) * (width - 2))
+        self.display.fill_rect(x + 1, y + 1, fill_width, height - 2, color)
+        
+        self.display.show()
+    
+    def draw_bar(self, x, y, width, height, value_percent, color=1):
+        """
+        Zeichnet einen Balken basierend auf einem Prozentwert.
+        Kann horizontal oder vertikal ausgerichtet sein (abhängig von width/height Verhältnis).
+        
+        Args:
+            x: X-Position der oberen linken Ecke
+            y: Y-Position der oberen linken Ecke
+            width: Breite des Balkens
+            height: Höhe des Balkens
+            value_percent: Der Wert als Prozentsatz (0-100)
+            color: 1 für an, 0 für aus (Standard: 1)
+        
+        Beispiel:
+            # Vertikale Balken-Anzeige (Audio-Visualizer)
+            oled.draw_bar(10, 10, 8, 50, 60)   # 60% gefüllt
+            oled.draw_bar(25, 10, 8, 50, 80)   # 80% gefüllt
+            
+            # Horizontale Balken-Anzeige
+            oled.draw_bar(10, 30, 100, 10, 40)  # 40% gefüllt
+        """
+        if not self.enabled:
+            return
+        
+        # Constraint Prozentwert
+        if value_percent < 0:
+            value_percent = 0
+        if value_percent > 100:
+            value_percent = 100
+        
+        # Vertikale Ausrichtung (height > width)
+        if height > width:
+            fill_height = int((value_percent / 100.0) * height)
+            # Balken von unten nach oben füllen
+            self.display.fill_rect(x, y + height - fill_height, width, fill_height, color)
+        else:
+            # Horizontale Ausrichtung (width >= height)
+            fill_width = int((value_percent / 100.0) * width)
+            self.display.fill_rect(x, y, fill_width, height, color)
         
         self.display.show()
 
