@@ -22,7 +22,7 @@ Eine leistungsstarke und benutzerfreundliche MicroPython-Bibliothek zur Ansteuer
 
 ### Installation
 
-Die Dateien oled.py muss heruntergeladen und auf dem ESP32 gespeichert werden. 
+Die Datei oled.py muss heruntergeladen und auf dem ESP32 gespeichert werden. 
 Das folgende Beipsiel zeigt die Implementierung:
 
 ```python
