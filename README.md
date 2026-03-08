@@ -1,3 +1,39 @@
+# NIT Bibliotheken - ESP32 MicroPython
+
+Sammlung von praktischen und benutzerfreundlichen Bibliotheken für den **NIT Unterricht** am ESP32 mit **MicroPython**.
+
+Diese Sammlung stellt optimierte Treiber und Bibliotheken zur Verfügung, um den Unterricht zu vereinfachen und schnelle Erfolge bei der Arbeit mit dem ESP32 zu erzielen.
+
+## 📦 Verfügbare Bibliotheken
+
+### 🖥️ OLED Display Treiber ([OLED/README.md](OLED/README.md))
+
+Eine leistungsstarke MicroPython-Bibliothek zur Ansteuerung von OLED-Displays auf dem ESP32.
+
+**Unterstützte Hardware:**
+- **SSD1306** OLED Display (128x64 Pixel)
+- **SH1106** OLED Display (128x64 Pixel)
+- I2C Interface
+
+**Features:**
+- Einfache Initialisierung: `from OLED import OLED`
+- Vollständige Grafik-API (Linien, Kreise, Rechtecke, Text)
+- Datenvisualisierung (`map()`, `progress_bar()`, `draw_bar()`)
+- Zwei integrierte Schriftarten
+- Keine externen Abhängigkeiten
+
+**Quick Start:**
+```python
+from OLED import OLED
+
+oled = OLED(scl=22, sda=21, chip='ssd1306')
+oled.print("Hello World", 0, 0)
+```
+
+Weitere Details und Beispiele finden Sie in der [OLED/README.md](OLED/README.md).
+
+---
+
 # NIT Bibliotheken - OLED Display Treiber
 
 Eine leistungsstarke und benutzerfreundliche MicroPython-Bibliothek zur Ansteuerung von OLED-Displays auf dem **ESP32**. Unterstützt sowohl **SSD1306** als auch **SH1106** Displays mit vollständiger Grafik- und Text-Funktionalität.
@@ -33,11 +69,11 @@ Eine leistungsstarke und benutzerfreundliche MicroPython-Bibliothek zur Ansteuer
 
 ### Installation
 
-1. Die Dateien in den OLED-Ordner in Ihr Projekt kopieren
-2. Das Modul importieren:
+1. Die Dateien befinden sich bereits im `OLED`-Ordner
+2. Einfach importieren:
 
 ```python
-from OLED.oled import OLED
+from OLED import OLED
 
 # Display initialisieren (SSD1306)
 oled = OLED(scl=22, sda=21, chip='ssd1306')
@@ -49,12 +85,15 @@ oled.print("Hello World", 0, 0)
 oled.clear()
 ```
 
+> **Hinweis**: Durch die `__init__.py` im OLED-Ordner ist der Import vereinfacht. 
+> Alte Syntax `from OLED.oled import OLED` funktioniert auch noch!
+
 ## 📚 Verwendungsbeispiele
 
 ### Beispiel 1: Einfache Text-Ausgabe
 
 ```python
-from OLED.oled import OLED
+from OLED import OLED
 import time
 
 # Initialisierung
@@ -80,7 +119,7 @@ time.sleep(2)
 ### Beispiel 2: Geometrische Formen
 
 ```python
-from OLED.oled import OLED
+from OLED import OLED
 import time
 
 oled = OLED(scl=22, sda=21, chip='ssd1306')
@@ -110,7 +149,7 @@ time.sleep(1)
 ### Beispiel 3: Pixelgrafiken
 
 ```python
-from OLED.oled import OLED
+from OLED import OLED
 import time
 
 oled = OLED(scl=22, sda=21, chip='ssd1306')
@@ -126,7 +165,7 @@ time.sleep(2)
 ### Beispiel 4: Mehrere Displays (SH1106)
 
 ```python
-from OLED.oled import OLED
+from OLED import OLED
 
 # Display mit SH1106 Controller
 oled = OLED(scl=22, sda=21, chip='sh1106', addr=0x3c)
@@ -139,7 +178,7 @@ oled.print("Funktioniert!", 0, 10)
 ### Beispiel 5: Display deaktivieren (ohne Hardware)
 
 ```python
-from OLED.oled import OLED
+from OLED import OLED
 
 # Nützlich für Tests ohne Hardware
 oled = OLED(enabled=False)
@@ -373,7 +412,7 @@ oled.draw_bar(10, 30, 100, 6, 40)   # 40% gefüllt
 ### Beispiel: Digitale Uhr
 
 ```python
-from OLED.oled import OLED
+from OLED import OLED
 import time
 from machine import RTC
 
@@ -408,7 +447,7 @@ while True:
 Echtzeitdarstellung von ADC-Messwerten als Scatterplot. Der Wert wird alle 0,2 Sekunden gemessen, auf die Display-Höhe gemappt und dargestellt.
 
 ```python
-from OLED.oled import OLED
+from OLED import OLED
 from machine import ADC, Pin
 import time
 
@@ -480,7 +519,7 @@ while True:
 Mehrere Balken zur Visualisierung von Frequenzbändern oder mehreren Sensoren:
 
 ```python
-from OLED.oled import OLED
+from OLED import OLED
 from machine import ADC, Pin
 import time
 import math
@@ -527,7 +566,7 @@ while True:
 ### Beispiel: Fortschrittsbalken-Animation
 
 ```python
-from OLED.oled import OLED
+from OLED import OLED
 import time
 
 oled = OLED(scl=22, sda=21, chip='ssd1306')
