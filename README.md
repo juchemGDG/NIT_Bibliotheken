@@ -34,6 +34,43 @@ Weitere Details und Beispiele finden Sie in der [OLED/README.md](OLED/README.md)
 
 ---
 
+### 🌡️ BME280 Sensor Bibliothek ([BME280/README.md](BME280/README.md))
+
+Eine leistungsstarke MicroPython-Bibliothek zur Ansteuerung des BME280 auf dem ESP32.
+
+**Unterstützte Hardware:**
+- **BME280** Umweltsensor (Temperatur, Luftdruck, Luftfeuchtigkeit)
+- I2C Interface (`0x76` oder `0x77`)
+
+**Features:**
+- Einfache Initialisierung: `from bme280 import BME280`
+- Temperatur-, Luftdruck- und Feuchtemessung
+- Höhenberechnung und Kalibrierung über Luftdruck
+- Taupunkt- und Hitzeindexberechnung
+- Konfigurierbare Betriebsmodi und Oversampling
+- Keine externen Abhängigkeiten (außer `machine`)
+
+**Quick Start:**
+```python
+from machine import I2C, Pin
+from bme280 import BME280
+
+i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=400000)
+sensor = BME280(i2c)
+
+temperatur, druck, feuchtigkeit = sensor.read_all()
+print(f"Temperatur: {temperatur:.2f}°C")
+print(f"Luftdruck: {druck:.2f} hPa")
+print(f"Feuchtigkeit: {feuchtigkeit:.2f}%")
+
+hoehe = sensor.calculate_altitude()
+print(f"Höhe: {hoehe:.2f} m")
+```
+
+Weitere Details und Beispiele finden Sie in der [BME280/README.md](BME280/README.md).
+
+---
+
 ### 🤖 MLEARN - Machine Learning ([MLEARN/README.md](MLEARN/README.md))
 
 Eine leichtgewichtige Machine-Learning-Bibliothek für MicroPython mit Implementierungen klassischer ML-Algorithmen.
