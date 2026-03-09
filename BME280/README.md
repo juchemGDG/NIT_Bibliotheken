@@ -92,35 +92,62 @@ temp, druck, feuchte = sensor.read_all()
 
 ### Höhenmessung
 
+Die Höhenberechnung basiert auf der barometrischen Höhenformel und benötigt einen **Referenzdruck auf Meereshöhe** (QNH-Wert). Der Standardwert ist 1013.25 hPa, aber für präzise Messungen sollte dieser an das aktuelle Wetter angepasst werden.
+
 #### Aktuelle Höhe berechnen
 
 ```python
 hoehe = sensor.calculate_altitude()  # in Metern
 ```
 
-Die Höhe wird aus dem aktuellen Luftdruck und dem Referenzdruck auf Meereshöhe berechnet (Standard: 1013.25 hPa).
+Die Höhe wird aus dem aktuellen Luftdruck und dem gespeicherten Referenzdruck berechnet.
 
-#### Referenzdruck setzen
+#### ⚙️ Methode 1: QNH-Wert setzen (Empfohlen für präzise Messungen)
 
-```python
-sensor.set_sea_level_pressure(1013.25)  # in hPa
-```
-
-#### Höhenmessung kalibrieren
-
-Wenn Sie Ihre aktuelle Höhe kennen:
+Wenn Sie den aktuellen Luftdruck auf Meereshöhe kennen (QNH-Wert von Wetterstation):
 
 ```python
-sensor.calibrate_altitude(450)  # z.B. 450 Meter über NN
+# Aktuellen QNH-Wert von einer Wetterstation eingeben
+sensor.set_sea_level_pressure(1005.3)  # in hPa
+
+# Jetzt wird die korrekte Höhe angezeigt
+hoehe = sensor.calculate_altitude()
+print(f"Höhe: {hoehe:.1f} m")
 ```
 
-Dies berechnet automatisch den korrekten Meereshöhendruck für präzise Messungen.
+**Wo bekomme ich den QNH-Wert?**
+- Lokale Wetterstationen oder Wetterdienste (DWD, wetter.de, etc.)
+- Flughäfen (METAR-Daten)
+- Wetter-APIs
+- Aktuelle Wetterberichte
+
+**Wichtig:** Der QNH-Wert ändert sich täglich mit dem Wetter (typisch 980-1030 hPa). Eine Differenz von ~6 hPa verursacht ca. 50m Höhenunterschied!
+
+#### 🎯 Methode 2: Höhenmessung kalibrieren (Einfachste Methode)
+
+Wenn Sie Ihre aktuelle Höhe kennen (z.B. von GPS oder Karte):
+
+```python
+# Bei bekannter Höhe einmalig kalibrieren
+sensor.calibrate_altitude(234)  # z.B. 234 Meter über NN
+
+# Ab jetzt stimmt die Höhenmessung
+hoehe = sensor.calculate_altitude()
+print(f"Höhe: {hoehe:.1f} m")
+print(f"Berechneter QNH: {sensor.sea_level_pressure:.2f} hPa")
+```
+
+Dies berechnet automatisch den korrekten Meereshöhendruck für Ihre Position und das aktuelle Wetter.
+
+**Tipp:** Führen Sie die Kalibrierung täglich durch, wenn sich das Wetter stark ändert (z.B. bei Hoch-/Tiefdruckgebieten).
 
 #### Meereshöhendruck berechnen
 
+Berechnet den QNH-Wert aus einer bekannten Höhe:
+
 ```python
-sea_level = sensor.calculate_sea_level_pressure(450)  # Höhe in Metern
-print(f"Luftdruck auf Meereshöhe: {sea_level:.2f} hPa")
+sea_level = sensor.calculate_sea_level_pressure(234)  # Höhe in Metern
+print(f"Berechneter QNH: {sea_level:.2f} hPa")
 ```
 
 ### Taupunkt berechnen
@@ -260,7 +287,44 @@ while True:
     sleep(1)
 ```
 
-### Beispiel 3: Energiesparende Datenerfassung
+### Beispiel 3: Präzise Höhenmessung mit QNH-Wert
+
+```python
+from machine import I2C, Pin
+from bme280 import BME280
+from time import sleep
+
+i2c = I2C(0, scl=Pin(22), sda=Pin(21))
+sensor = BME280(i2c)
+
+# QNH-Wert von lokaler Wetterstation eingeben
+# (z.B. von wetter.de, Flughafen METAR, oder Wetterstation)
+aktueller_qnh = 1005.3  # Beispielwert in hPa
+sensor.set_sea_level_pressure(aktueller_qnh)
+
+print(f"QNH gesetzt auf: {aktueller_qnh:.2f} hPa")
+print("=" * 40)
+
+while True:
+    temp, druck, feuchte = sensor.read_all()
+    hoehe = sensor.calculate_altitude()
+    
+    # Berechne, wie sich der Luftdruck verhält
+    pressure_trend = "stabil"
+    
+    print(f"Temperatur:     {temp:.1f}°C")
+    print(f"Luftdruck:      {druck:.2f} hPa")
+    print(f"Feuchtigkeit:   {feuchte:.1f}%")
+    print(f"Höhe (präzise): {hoehe:.1f} m")
+    print(f"QNH (Referenz): {sensor.sea_level_pressure:.2f} hPa")
+    print("=" * 40)
+    
+    sleep(10)
+```
+
+**Tipp:** Aktualisieren Sie den QNH-Wert täglich für beste Genauigkeit!
+
+### Beispiel 4: Energiesparende Datenerfassung
 
 ```python
 from machine import I2C, Pin, deepsleep
@@ -287,7 +351,7 @@ print(f"{temp:.1f}°C, {druck:.1f}hPa, {feuchte:.1f}%")
 deepsleep(300000)
 ```
 
-### Beispiel 4: Überwachung mit Schwellwerten
+### Beispiel 5: Überwachung mit Schwellwerten
 
 ```python
 from machine import I2C, Pin
@@ -322,7 +386,7 @@ while True:
     sleep(5)
 ```
 
-### Beispiel 5: Mehrere Sensoren
+### Beispiel 6: Mehrere Sensoren
 
 ```python
 from machine import I2C, Pin
@@ -419,10 +483,25 @@ RuntimeError: BME280 nicht gefunden!
 
 ### Höhenmessung ungenau
 
+**Symptome:** Die angezeigte Höhe weicht um 50-100m von der tatsächlichen Höhe ab
+
+**Ursache:** Der verwendete Referenzdruck (Standard: 1013.25 hPa) passt nicht zum aktuellen Wetter. Der tatsächliche Luftdruck auf Meereshöhe ändert sich täglich mit Hoch- und Tiefdruckgebieten (typisch 980-1030 hPa).
+
 **Lösungen:**
-- Kalibrierung durchführen: `sensor.calibrate_altitude(bekannte_hoehe)`
-- Aktuellen Meereshöhendruck verwenden (Wetterstation)
-- Luftdruckänderungen durch Wetter beachten
+
+1. **Höhe kalibrieren (einfachste Methode):**
+   ```python
+   sensor.calibrate_altitude(234)  # Ihre bekannte Höhe in Metern
+   ```
+
+2. **Aktuellen QNH-Wert eingeben:**
+   ```python
+   sensor.set_sea_level_pressure(1005.3)  # Von Wetterstation
+   ```
+
+3. **Regelmäßig neu kalibrieren:** Bei starken Wetteränderungen täglich kalibrieren
+
+**Hinweis:** Eine Luftdruckdifferenz von ~6 hPa verursacht etwa 50m Höhenunterschied. Dies ist physikalisch bedingt und keine Fehlfunktion des Sensors!
 
 ## Lizenz
 
