@@ -472,6 +472,8 @@ class OLED:
             font: 'sans' (serifenlos) oder 'serif' (Systemschriftart, Standard: 'serif')
             scale: Vergrößerung für die Sans-Font (Standard: 1)
             color: 1 für an, 0 für aus (Standard: 1)
+        
+        Hinweis: Rufen Sie show() auf, um die Änderungen anzuzeigen
         """
         if not self.enabled:
             return
@@ -485,8 +487,6 @@ class OLED:
         else:
             # Standard: MicroPython 8x8 Systemschriftart
             self.display.text(str(string), x, y, color)
-
-        self.display.show()
     
     def pixel(self, x, y, color=1):
         """
@@ -496,12 +496,13 @@ class OLED:
             x: X-Position
             y: Y-Position
             color: 1 für an, 0 für aus (Standard: 1)
+        
+        Hinweis: Rufen Sie show() auf, um die Änderungen anzuzeigen
         """
         if not self.enabled:
             return
         
         self.display.pixel(x, y, color)
-        self.display.show()
     
     def draw_rect(self, x1, y1, b, h, color=1):
         """
@@ -513,12 +514,13 @@ class OLED:
             b: Breite
             h: Höhe
             color: 1 für an, 0 für aus (Standard: 1)
+        
+        Hinweis: Rufen Sie show() auf, um die Änderungen anzuzeigen
         """
         if not self.enabled:
             return
         
         self.display.rect(x1, y1, b, h, color)
-        self.display.show()
     
     def fill_rect(self, x1, y1, b, h, color=1):
         """
@@ -530,12 +532,13 @@ class OLED:
             b: Breite
             h: Höhe
             color: 1 für an, 0 für aus (Standard: 1)
+        
+        Hinweis: Rufen Sie show() auf, um die Änderungen anzuzeigen
         """
         if not self.enabled:
             return
         
         self.display.fill_rect(x1, y1, b, h, color)
-        self.display.show()
     
     def draw_circle(self, x, y, r, color=1):
         """
@@ -546,6 +549,8 @@ class OLED:
             y: Y-Position des Mittelpunkts
             r: Radius
             color: 1 für an, 0 für aus (Standard: 1)
+        
+        Hinweis: Rufen Sie show() auf, um die Änderungen anzuzeigen
         """
         if not self.enabled:
             return
@@ -565,8 +570,6 @@ class OLED:
             else:
                 d = d + 4 * x_pos + 6
             self._draw_circle_points(x, y, x_pos, y_pos, color)
-        
-        self.display.show()
     
     def fill_circle(self, x, y, r, color=1):
         """
@@ -577,6 +580,8 @@ class OLED:
             y: Y-Position des Mittelpunkts
             r: Radius
             color: 1 für an, 0 für aus (Standard: 1)
+        
+        Hinweis: Rufen Sie show() auf, um die Änderungen anzuzeigen
         """
         if not self.enabled:
             return
@@ -602,8 +607,6 @@ class OLED:
             self.display.hline(x - x_pos, y - y_pos, 2 * x_pos + 1, color)
             self.display.hline(x - y_pos, y + x_pos, 2 * y_pos + 1, color)
             self.display.hline(x - y_pos, y - x_pos, 2 * y_pos + 1, color)
-        
-        self.display.show()
     
     def _draw_circle_points(self, xc, yc, x, y, color):
         """Hilfsfunktion zum Zeichnen der 8 Kreispunkte"""
@@ -627,12 +630,13 @@ class OLED:
             x2: X-Position des Endpunkts
             y2: Y-Position des Endpunkts
             color: 1 für an, 0 für aus (Standard: 1)
+        
+        Hinweis: Rufen Sie show() auf, um die Änderungen anzuzeigen
         """
         if not self.enabled:
             return
         
         self.display.line(x1, y1, x2, y2, color)
-        self.display.show()
     
     def hline(self, x, y, w, color=1):
         """
@@ -643,12 +647,13 @@ class OLED:
             y: Y-Position (verläuft horizontal)
             w: Breite/Länge der Linie
             color: 1 für an, 0 für aus (Standard: 1)
+        
+        Hinweis: Rufen Sie show() auf, um die Änderungen anzuzeigen
         """
         if not self.enabled:
             return
         
         self.display.hline(x, y, w, color)
-        self.display.show()
     
     def vline(self, x, y, h, color=1):
         """
@@ -659,12 +664,13 @@ class OLED:
             y: Y-Position des Startpunkts
             h: Höhe/Länge der Linie
             color: 1 für an, 0 für aus (Standard: 1)
+        
+        Hinweis: Rufen Sie show() auf, um die Änderungen anzuzeigen
         """
         if not self.enabled:
             return
         
         self.display.vline(x, y, h, color)
-        self.display.show()
     
     def clear(self):
         """Löscht das Display"""
@@ -721,8 +727,11 @@ class OLED:
             percent: Prozentwert (0-100)
             color: 1 für an, 0 für aus (Standard: 1)
         
+        Hinweis: Rufen Sie show() auf, um die Änderungen anzuzeigen
+        
         Beispiel:
             oled.progress_bar(10, 30, 108, 10, 75)  # 75% gefüllt
+            oled.show()  # Anzeigen
         """
         if not self.enabled:
             return
@@ -739,8 +748,6 @@ class OLED:
         # Gefüllter innerer Bereich
         fill_width = int((percent / 100.0) * (width - 2))
         self.display.fill_rect(x + 1, y + 1, fill_width, height - 2, color)
-        
-        self.display.show()
     
     def draw_bar(self, x, y, width, height, value_percent, color=1):
         """
@@ -755,13 +762,17 @@ class OLED:
             value_percent: Der Wert als Prozentsatz (0-100)
             color: 1 für an, 0 für aus (Standard: 1)
         
+        Hinweis: Rufen Sie show() auf, um die Änderungen anzuzeigen
+        
         Beispiel:
             # Vertikale Balken-Anzeige (Audio-Visualizer)
             oled.draw_bar(10, 10, 8, 50, 60)   # 60% gefüllt
             oled.draw_bar(25, 10, 8, 50, 80)   # 80% gefüllt
+            oled.show()  # Alle Balken auf einmal anzeigen
             
             # Horizontale Balken-Anzeige
             oled.draw_bar(10, 30, 100, 10, 40)  # 40% gefüllt
+            oled.show()  # Anzeigen
         """
         if not self.enabled:
             return
@@ -781,21 +792,25 @@ class OLED:
             # Horizontale Ausrichtung (width >= height)
             fill_width = int((value_percent / 100.0) * width)
             self.display.fill_rect(x, y, fill_width, height, color)
-        
-        self.display.show()
 
 
 # Beispiel-Verwendung:
 # oled = OLED(scl=22, sda=21, chip='ssd1306', enabled=True)
+# 
+# # Alle Zeichenbefehle schreiben in den Puffer
 # oled.print("Hello World", 0, 0)  # mit Systemschriftart (Serif-Standard)
 # oled.print("Hello World", 0, 10, font='sans')  # serifenlose Schrift
 # oled.print("Hello World", 0, 20, font='sans', scale=2)  # größer
-# oled.draw_rect(10, 10, 50, 30)  # Rechteck-Umriss
-# oled.fill_rect(10, 10, 50, 30)  # gefülltes Rechteck
-# oled.draw_circle(64, 32, 20)  # Kreis-Umriss
-# oled.fill_circle(64, 32, 20)  # gefüllter Kreis
-# oled.line(0, 0, 127, 63)
+# oled.show()  # JETZT erst anzeigen - verhindert Flimmern!
+# 
+# # Grafik-Beispiel
 # oled.clear()
+# oled.draw_rect(10, 10, 50, 30)  # Rechteck-Umriss
+# oled.fill_rect(70, 10, 50, 30)  # gefülltes Rechteck
+# oled.draw_circle(40, 40, 15)  # Kreis-Umriss
+# oled.fill_circle(90, 40, 15)  # gefüllter Kreis
+# oled.line(0, 0, 127, 63)
+# oled.show()  # Alles auf einmal anzeigen
 #
 # Für SH1106 Display:
 # oled = OLED(scl=22, sda=21, chip='sh1106', enabled=True)

@@ -32,6 +32,7 @@ oled = OLED(scl=22, sda=21, chip='ssd1306')
 
 # Text ausgeben
 oled.print("Hello World", 0, 0)
+oled.show()  # Anzeigen!
 
 # Display löschen
 oled.clear()
@@ -54,6 +55,7 @@ oled.clear()
 # Text mit Systemschriftart
 oled.print("NIT Bibliotheken", 0, 0)
 oled.print("OLED Display", 0, 10)
+oled.show()  # Alle Änderungen anzeigen
 
 time.sleep(2)
 
@@ -61,6 +63,7 @@ time.sleep(2)
 oled.clear()
 oled.print("Text in SANS", 0, 0, font='sans')
 oled.print("Vergrößert x2", 0, 20, font='sans', scale=2)
+oled.show()  # Alle Änderungen anzeigen
 
 time.sleep(2)
 ```
@@ -77,6 +80,7 @@ oled.clear()
 # Rechtecke
 oled.draw_rect(10, 10, 50, 30)      # Umriss
 oled.fill_rect(70, 10, 50, 30)      # Gefüllt
+oled.show()  # Alle Änderungen anzeigen
 
 time.sleep(1)
 oled.clear()
@@ -84,6 +88,7 @@ oled.clear()
 # Kreise
 oled.draw_circle(40, 40, 15)        # Umriss
 oled.fill_circle(90, 40, 15)        # Gefüllt
+oled.show()  # Alle Änderungen anzeigen
 
 time.sleep(1)
 oled.clear()
@@ -91,6 +96,7 @@ oled.clear()
 # Linien
 oled.line(0, 0, 127, 63)            # Diagonale
 oled.line(127, 0, 0, 63)            # Andere Diagonale
+oled.show()  # Alle Änderungen anzeigen
 
 time.sleep(1)
 ```
@@ -119,6 +125,7 @@ ADC_MAX = 4095
 
 oled.clear()
 oled.print("ADC Sensor", 35, 0, font='sans')
+oled.show()
 
 last_measure = time.time()
 
@@ -141,7 +148,7 @@ while True:
         if len(data_points) > max_points:
             data_points.pop(0)
         
-        # Display aktualisieren
+        # Display aktualisieren - ALLE Zeichenoperationen in Puffer schreiben
         oled.clear()
         
         # Header-Informationen
@@ -159,7 +166,8 @@ while True:
             pixel_x = int(i * 128 / max_points)
             oled.pixel(pixel_x, y, 1)
         
-        oled.display.show()
+        # JETZT erst anzeigen - verhindert Flimmern!
+        oled.show()
         last_measure = current_time
     
     time.sleep(0.01)  # Kleine Pause zur CPU-Entlastung
@@ -174,6 +182,7 @@ import time
 oled = OLED(scl=22, sda=21, chip='ssd1306')
 oled.clear()
 oled.print("Audio-Viz", 35, 0, font='sans')
+oled.show()
 time.sleep(1)
 
 # Simulierte Sensordaten
@@ -200,6 +209,8 @@ while True:
         # Zahlenwert über dem Balken
         oled.print(f"{percent:3d}%", x, 62, font='sans')
     
+    # JETZT erst anzeigen - verhindert Flimmern!
+    oled.show()
     time.sleep(0.1)
 ```
 
@@ -220,6 +231,24 @@ oled = OLED(scl=5, sda=4, chip='ssd1306')  # Alternative Pins
 ```
 
 ## 📖 API Referenz
+
+### ⚠️ Wichtig: Buffer-Verwaltung
+
+**Alle Zeichenmethoden schreiben in einen Puffer und zeigen NICHT automatisch an!**
+
+Um Flimmern zu vermeiden, sollten Sie:
+1. Alle Zeichenoperationen durchführen (im Puffer)
+2. **Einmal** `oled.show()` aufrufen, um alles anzuzeigen
+
+```python
+# ❌ SCHLECHT: Flimmert, da jeder Befehl sofort angezeigt würde (alte Version)
+# ✅ GUT: Alles in Puffer schreiben, dann EINMAL anzeigen
+oled.clear()
+oled.draw_rect(10, 10, 50, 30)
+oled.print("Text", 0, 0)
+oled.draw_circle(64, 32, 20)
+oled.show()  # Jetzt erst anzeigen - kein Flimmern!
+```
 
 ### Initialisierung
 
@@ -264,8 +293,8 @@ oled = OLED(scl=22, sda=21, chip='ssd1306', logo=False)
 
 ### Verwaltungs-Methoden
 
-- `clear()` - Display löschen
-- `show()` - Display aktualisieren
+- `clear()` - Display löschen (schwarzer Bildschirm wird sofort angezeigt)
+- `show()` - Puffer auf Display übertragen (zeigt alle zuvor gezeichneten Elemente an)
 
 ## 🛠️ Fehlerbehebung
 
