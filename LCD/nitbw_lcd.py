@@ -1,27 +1,14 @@
 """
-LCD Display Klasse für ESP32 mit MicroPython
-Unterstützt HD44780-kompatible LCD-Displays (16x2 und 20x4) über PCF8574 I2C-Adapter
-Eigenständige Implementierung ohne externe Abhängigkeiten
- 
-MIT License
-Copyright (c) 2026 Stephan Juchem / Volker Rust
-Version 1.0
+NIT Bibliothek: LCD - HD44780 LCD-Display ueber PCF8574 I2C-Adapter
+Fuer ESP32 mit MicroPython
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+Version:    1.1.0
+Autor:      Volker Rust/nitbw
+Lizenz:     MIT (siehe LICENSE)
+Erstellt:   2026-03
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-Die Datei wurde mit Hilfe von github Copilot am 9.3.2026 erstellt und angepasst.
-Es wurden keine externen Bibliotheken verwendet, sondern alle Funktionen selbst implementiert.
-Die Bibliothek kommuniziert im 4-Bit-Modus über einen PCF8574 I2C-Portexpander
-mit dem HD44780-kompatiblen LCD-Controller. Alle Funktionen sind in der LCD-Klasse
-enthalten, die sowohl 16x2 als auch 20x4 Displays unterstützt.
+Unterstuetzt 16x2 und 20x4 LCD-Displays im 4-Bit-Modus.
+Die Implementierung ist eigenstaendig und benoetigt keine externen Bibliotheken.
 """
 
 from machine import I2C, Pin
@@ -239,15 +226,13 @@ class LCDTreiber:
 
 class LCD:
     """
-    Benutzerfreundliche LCD-Klasse für HD44780-Displays am ESP32 (MicroPython).
+    Benutzerfreundliche LCD-Klasse fuer HD44780-kompatible Displays.
 
-    Unterstützt 16x2 und 20x4 Displays über PCF8574 I2C-Adapter.
-    Bietet eine einfache API zum Schreiben von Text, Steuern der
-    Hintergrundbeleuchtung und Erstellen eigener Zeichen.
+    Unterstuetzte Hardware:
+    - HD44780-kompatible LCD-Module (16x2 und 20x4)
+    - PCF8574/PCF8574A I2C-Adapter
 
-    Beispiel:
-        lcd = LCD(scl=22, sda=21)
-        lcd.print("Hallo Welt!", 0, 0)
+    Schnittstelle: I2C
     """
 
     # Zuordnung deutscher Umlaute und Sonderzeichen zu CGRAM-Positionen (0-7).
