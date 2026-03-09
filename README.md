@@ -135,3 +135,44 @@ lcd.print("Grüße! ♥", 0, 1)
 Weitere Details und Beispiele finden Sie in der [LCD/README.md](LCD/README.md).
 
 ---
+
+### 🧭 GY-261 Kompass Sensor ([COMPASS/README.md](COMPASS/README.md))
+
+Eine leistungsstarke MicroPython-Bibliothek zur Ansteuerung des GY-261 Kompass-Sensors (HMC5883L) auf dem ESP32.
+
+**Unterstützte Hardware:**
+- **GY-261** 3-Achsen Magnetometer (HMC5883L)
+- I2C Interface (`0x1E`)
+
+**Features:**
+- Einfache Initialisierung: `from compass import Compass`
+- 3-Achsen Magnetfeld-Messung (X, Y, Z)
+- Kompassrichtung (Heading) in Grad (0°-360°)
+- Himmelsrichtungen (N, NE, E, SE, S, SW, W, NW)
+- Automatische Offset-Kalibrierung
+- Lokale Deklinationswinkel-Verwaltung
+- 8 einstellbare Messbereiche (Gains)
+- Digitale Filter und Sample Rate Einstellung
+- Feldstärke-Berechnung
+- Keine externen Abhängigkeiten
+
+**Quick Start:**
+```python
+from machine import I2C, Pin
+from compass import Compass
+
+i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=400000)
+compass = Compass(i2c)
+
+# Kompassrichtung auslesen
+heading = compass.read_heading()
+print(f"Heading: {heading:.1f}°")
+
+# Himmelsrichtung
+direction = compass.read_heading_direction()
+print(f"Richtung: {direction}")
+```
+
+Weitere Details und Beispiele finden Sie in der [COMPASS/README.md](COMPASS/README.md).
+
+---
