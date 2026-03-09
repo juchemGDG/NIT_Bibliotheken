@@ -33,3 +33,40 @@ oled.print("Hello World", 0, 0)
 Weitere Details und Beispiele finden Sie in der [OLED/README.md](OLED/README.md).
 
 ---
+
+### 🤖 MLEARN - Machine Learning ([MLEARN/README.md](MLEARN/README.md))
+
+Eine leichtgewichtige Machine-Learning-Bibliothek für MicroPython mit Implementierungen klassischer ML-Algorithmen.
+
+**Implementierte Algorithmen:**
+- **k-Nearest Neighbors (kNN)** - Klassifikation basierend auf nächsten Nachbarn
+- **Logistische Regression** - Binäre Klassifikation mit Gradient Descent
+- **Decision Tree** - Multi-Class Klassifikation mit Gini-Index
+
+**Features:**
+- CSV-Datenimport mit flexiblem Format
+- Automatische Feature-Normalisierung (kNN)
+- Speicheroptimiert für Mikrocontroller
+- Einfache API für alle drei Algorithmen
+- Baumstruktur-Visualisierung für Decision Trees
+
+**Quick Start:**
+```python
+from mlearn import MLearn
+
+# k-Nearest Neighbors
+model = MLearn(k=3)
+model.load_csv('data.csv', separator=',', target=0)
+model.train_knn()
+prediction = model.predict_knn([5.1, 3.5, 1.4])
+
+# Decision Tree
+model = MLearn()
+model.load_csv('data.csv')
+model.train_tree(max_depth=5)
+prediction = model.predict_tree([6.5, 3.0, 5.2])
+```
+
+Weitere Details und Beispiele finden Sie in der [MLEARN/README.md](MLEARN/README.md).
+
+---
