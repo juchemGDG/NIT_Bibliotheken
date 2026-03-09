@@ -33,3 +33,33 @@ oled.print("Hello World", 0, 0)
 Weitere Details und Beispiele finden Sie in der [OLED/README.md](OLED/README.md).
 
 ---
+
+### 📟 LCD Display Treiber ([LCD/README.md](LCD/README.md))
+
+Eine benutzerfreundliche MicroPython-Bibliothek zur Ansteuerung von HD44780-kompatiblen LCD-Displays auf dem ESP32.
+
+**Unterstützte Hardware:**
+- **16x2** und **20x4** LCD-Displays
+- I2C Interface über **PCF8574** Portexpander
+
+**Features:**
+- Einfache Initialisierung: `from lcd import LCD`
+- **Deutsche Umlaute** (äöüÄÖÜß) direkt im Text verwendbar
+- **Sonderzeichen**: °C, ♥ (Herz) und HD44780-ROM-Zeichen
+- Vollständige Text-API (`print`, `print_center`, `print_right`)
+- Datenvisualisierung (`map()`, `progress_bar()`, `draw_bar()`)
+- Eigene Zeichen (1 freier Platz, 7 für Umlaute belegt)
+- Keine externen Abhängigkeiten
+
+**Quick Start:**
+```python
+from lcd import LCD
+
+lcd = LCD(scl=22, sda=21, addr=0x27)
+lcd.print("Temperatur: 23.5°C", 0, 0)
+lcd.print("Grüße! ♥", 0, 1)
+```
+
+Weitere Details und Beispiele finden Sie in der [LCD/README.md](LCD/README.md).
+
+---
