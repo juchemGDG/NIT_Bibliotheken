@@ -1,8 +1,23 @@
 # GY-261 Kompass Sensor Bibliothek
 
-Eine leistungsstarke MicroPython-Bibliothek zur Ansteuerung des **GY-261** Kompass-Sensors (HMC5883L) auf dem **ESP32**.
+Eine leistungsstarke MicroPython-Bibliothek zur Ansteuerung des **GY-261** Kompass-Sensors auf dem **ESP32**.
 
 Die Bibliothek misst das Erdmagnetfeld in drei Dimensionen (X, Y, Z) und berechnet daraus die Kompassrichtung (Heading). Sie kommt **vollständig ohne externe Abhängigkeiten** aus (außer `machine` für I2C).
+
+## ⚠️ Wichtig: Chip-Varianten
+
+Das GY-261 Modul wird in zwei Versionen angeboten:
+- **HMC5883L** (ältere Version, I2C Adresse: `0x1E`)
+- **QMC5883L** (neuere Version, I2C Adresse: `0x0D`) ← **am häufigsten**
+
+Diese Bibliothek unterstützt **beide Versionen automatisch**. Die Standard-Adresse ist `0x0D` (QMC5883L).
+
+**Um die richtige Adresse zu finden:**
+```python
+from machine import I2C, Pin
+i2c = I2C(0, scl=Pin(22), sda=Pin(21))
+print(i2c.scan())  # Zeigt Hex-Adressen, z.B. [13] = 0x0D
+```
 
 ## ✨ Features
 
@@ -19,8 +34,9 @@ Die Bibliothek misst das Erdmagnetfeld in drei Dimensionen (X, Y, Z) und berechn
 
 ## 🔧 Hardware-Anforderungen
 
-### Unterstützte Sensoren
-- **GY-261** (basierend auf HMC5883L)
+**Unterstützte Sensoren**
+- **GY-261 mit QMC5883L** (I2C Adresse: `0x0D`) - häufigste Version
+- **GY-261 mit HMC5883L** (I2C Adresse: `0x1E`) - ältere Version
 - 3-Achsen Magnetometer
 - I2C Schnittstelle
 
@@ -48,8 +64,8 @@ from compass import Compass
 # I2C initialisieren (Standard Pins: SCL=22, SDA=21)
 i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=400000)
 
-# Kompass initialisieren
-compass = Compass(i2c)
+# Kompass initialisieren (0x0D für QMC5883L, 0x1E für HMC5883L)
+compass = Compass(i2c, addr=0x0D)
 
 # Kompassrichtung auslesen (Grad, 0° = Nord)
 heading = compass.read_heading()
@@ -61,7 +77,7 @@ print(f"Richtung: {direction}")
 
 # Magnetfeldstärke auslesen (in Milligauss)
 x, y, z = compass.read_field()
-print(f"Magnetfeld: X={x:.1f} mG, Y={y:.1f} mG, Z={z:.1f} mG")
+print(f"Magnetfeld: X={x:.2f} mG, Y={y:.2f} mG, Z={z:.2f} mG")
 ```
 
 ## 📚 Detaillierte Verwendungsbeispiele
@@ -74,7 +90,7 @@ from compass import Compass
 import time
 
 i2c = I2C(0, scl=Pin(22), sda=Pin(21))
-compass = Compass(i2c)
+compass = Compass(i2c, addr=0x0D)  # QMC5883L
 
 # Lokale Deklination setzen (z.B. 3° 45' für Mitteleuropa)
 compass.set_declination(degrees=3, minutes=45)
@@ -96,7 +112,7 @@ from compass import Compass
 from machine import I2C, Pin
 
 i2c = I2C(0, scl=Pin(22), sda=Pin(21))
-compass = Compass(i2c)
+compass = Compass(i2c, addr=0x0D)  # QMC5883L
 
 # Automatische Kalibrierung durchführen
 # Sensor während des Vorgangs LANGSAM in alle Richtungen drehen
@@ -120,7 +136,7 @@ from machine import I2C, Pin
 import time
 
 i2c = I2C(0, scl=Pin(22), sda=Pin(21))
-compass = Compass(i2c)
+compass = Compass(i2c, addr=0x0D)  # QMC5883L
 compass.set_declination(degrees=3, minutes=45)
 
 print("=" * 50)
@@ -133,34 +149,31 @@ while True:
     strength = compass.read_strength()
     
     print(f"\nHeading: {heading:6.1f}°")
-    print(f"X-Feld: {x:7.1f} mG")
-    print(f"Y-Feld: {y:7.1f} mG")
-    print(f"Z-Feld: {z:7.1f} mG")
-    print(f"Feldstärke (gesamt): {strength:6.1f} mG")
+    print(f"X-Feld: {x:7.2f} mG")
+    print(f"Y-Feld: {y:7.2f} mG")
+    print(f"Z-Feld: {z:7.2f} mG")
+    print(f"Feldstärke (gesamt): {strength:6.2f} mG")
     
     time.sleep(1)
 ```
 
-### Beispiel 4: Gaineinstellung (Empfindlichkeit)
+### Beispiel 4: Range-Einstellung (Messbereich)
 
 ```python
 from compass import Compass
 from machine import I2C, Pin
 
 i2c = I2C(0, scl=Pin(22), sda=Pin(21))
-compass = Compass(i2c)
+compass = Compass(i2c, addr=0x0D)  # QMC5883L
 
-# Standardgain: 1370 (beste Balance)
-# compass.set_gain(compass.GAIN_1370)  # 0.73 mG/LSB
+# StandardRange: ±2 Gauss (beste Genauigkeit)
+# compass.set_range(compass.RANGE_2G)
 
-# Für stärkere Felder: höherer Gain
-# compass.set_gain(compass.GAIN_165)   # 5.80 mG/LSB
-
-# Für schwache Felder: niedrigerer Gain
-compass.set_gain(compass.GAIN_1090)     # 0.92 mG/LSB
+# Für stärkere Felder: größerer Range
+compass.set_range(compass.RANGE_8G)  # ±8 Gauss
 
 heading = compass.read_heading()
-print(f"Heading mit angepasstem Gain: {heading:.1f}°")
+print(f"Heading mit größerem Range: {heading:.1f}°")
 ```
 
 ### Beispiel 5: Sample Rate (Messhäufigkeit)
@@ -171,27 +184,27 @@ from machine import I2C, Pin
 import time
 
 i2c = I2C(0, scl=Pin(22), sda=Pin(21))
-compass = Compass(i2c)
+compass = Compass(i2c, addr=0x0D)  # QMC5883L
 
 # Schnelle Aktualisierung für dynamische Anwendungen
-compass.set_sample_rate(compass.RATE_75HZ)  # 75 Messungen pro Sekunde
+compass.set_sample_rate(compass.RATE_100HZ)  # 100 Messungen pro Sekunde
 
-print("Schnelle Sample Rate (75 Hz)")
+print("Schnelle Sample Rate (100 Hz)")
 
 for i in range(10):
     heading = compass.read_heading()
     print(f"  {heading:.1f}°")
-    time.sleep(0.05)
+    time.sleep(0.02)
 
 # Für stromspartenden Betrieb
-compass.set_sample_rate(compass.RATE_1_5HZ)  # 1.5 Messungen pro Sekunde
+compass.set_sample_rate(compass.RATE_10HZ)  # 10 Messungen pro Sekunde
 
-print("\nLangsame Sample Rate (1.5 Hz)")
+print("\nLangsame Sample Rate (10 Hz)")
 
 for i in range(5):
     heading = compass.read_heading()
     print(f"  {heading:.1f}°")
-    time.sleep(1)
+    time.sleep(0.1)
 ```
 
 ### Beispiel 6: Vollständiges Navigationssystem
@@ -202,7 +215,7 @@ from machine import I2C, Pin
 import time
 
 i2c = I2C(0, scl=Pin(22), sda=Pin(21))
-compass = Compass(i2c)
+compass = Compass(i2c, addr=0x0D)  # QMC5883L
 
 # Für Mitteleuropa typisch: 3° 45' östlich
 compass.set_declination(degrees=3, minutes=45)
@@ -269,17 +282,43 @@ while True:
     time.sleep(0.5)
 ```
 
-## 📖 API Referenz
+### Beispiel 7: Drehwinkelmessung
+
+```python
+from compass import Compass
+from machine import I2C, Pin
+import time
+
+i2c = I2C(0, scl=Pin(22), sda=Pin(21))
+compass = Compass(i2c, addr=0x0D)  # QMC5883L
+
+# Start-Richtung aufnehmen
+start_heading = compass.read_heading()
+print(f"Start: {start_heading:.1f}°")
+print("Drehe den Sensor...")
+
+while True:
+    current_heading = compass.read_heading()
+    
+    # Drehwinkel berechnen
+    rotation = compass.calculate_rotation(start_heading, current_heading)
+    direction = compass.get_rotation_direction(start_heading, current_heading)
+    
+    print(f"Aktuell: {current_heading:6.1f}° | Drehung: {rotation:+7.1f}° {direction}")
+    time.sleep(0.5)
+```
+
+---
 
 ### Initialisierung
 
 ```python
-Compass(i2c=None, addr=0x1E, scl=22, sda=21)
+Compass(i2c=None, addr=0x0D, scl=22, sda=21)
 ```
 
 **Parameter:**
 - `i2c` (I2C): I2C Bus Objekt oder None (dann wird auto-erstellt)
-- `addr` (int): I2C Adresse (Standard: 0x1E)
+- `addr` (int): I2C Adresse (Standard: `0x0D` für QMC5883L, `0x1E` für HMC5883L)
 - `scl` (int): SCL Pin falls i2c=None (Standard: 22)
 - `sda` (int): SDA Pin falls i2c=None (Standard: 21)
 
@@ -322,6 +361,29 @@ if compass.is_ready():
 ```
 Gibt True zurück, falls neue Daten verfügbar sind.
 
+#### Drehwinkel berechnen
+```python
+rotation = compass.calculate_rotation(start_heading, end_heading)
+```
+Berechnet den Drehwinkel zwischen zwei Kompassrichtungen.
+
+**Returns:**
+- Positiv (+): Drehung im Uhrzeigersinn (rechts)
+- Negativ (-): Drehung gegen Uhrzeigersinn (links)
+- Bereich: -180° bis +180° (kürzester Weg)
+
+**Beispiele:**
+- von 10° nach 90° → +80° (80° nach rechts)
+- von 90° nach 10° → -80° (80° nach links)
+- von 350° nach 10° → +20° (20° nach rechts über 0°)
+- von 10° nach 350° → -20° (20° nach links über 0°)
+
+#### Drehrichtung als Text
+```python
+direction = compass.get_rotation_direction(start_heading, end_heading)
+```
+Gibt `"rechts"`, `"links"` oder `"keine Drehung"` zurück.
+
 ### Konfigurationsmethoden
 
 #### Deklinationswinkel setzen
@@ -338,34 +400,40 @@ Setzt lokale magnetische Deklination (Unterschied zwischen magnetischem und geog
 - USA (New York): ca. 13° westlich
 - Werte abrufen: https://www.ngdc.noaa.gov/geomag/calculators/magcalc.shtml
 
-#### Empfindlichkeit einstellen
+#### Messbereich einstellen (QMC5883L)
 ```python
-compass.set_gain(compass.GAIN_1370)
+compass.set_range(compass.RANGE_2G)
 ```
 
-Verfügbare Gains (niedrig zu hoch):
-- `GAIN_1370` - 0.73 mG/LSB (Standard, beste Balance)
-- `GAIN_1090` - 0.92 mG/LSB
-- `GAIN_820` - 1.22 mG/LSB
-- `GAIN_660` - 1.52 mG/LSB
-- `GAIN_440` - 2.27 mG/LSB
-- `GAIN_330` - 3.03 mG/LSB
-- `GAIN_220` - 4.35 mG/LSB
-- `GAIN_165` - 5.80 mG/LSB (höchste Auflösung)
+Verfügbare Bereiche:
+- `RANGE_2G` - ±2 Gauss (Standard, beste Auflösung)
+- `RANGE_8G` - ±8 Gauss
+- `RANGE_12G` - ±12 Gauss
+- `RANGE_30G` - ±30 Gauss (höchster Bereich)
 
-#### Sample Rate einstellen
+**Hinweis:** Für normale Navigation ist `RANGE_2G` ideal. Das Erdmagnetfeld beträgt ca. 25-65 Mikrotesla ≈ 0,25-0,65 Gauss.
+
+#### Sample Rate einstellen (QMC5883L)
 ```python
-compass.set_sample_rate(compass.RATE_15HZ)
+compass.set_sample_rate(compass.RATE_25HZ)
 ```
 
 Verfügbare Raten:
-- `RATE_0_75HZ` - 0,75 Messungen/Sekunde
-- `RATE_1_5HZ` - 1,5 Messungen/Sekunde
-- `RATE_3HZ` - 3 Messungen/Sekunde
-- `RATE_7_5HZ` - 7,5 Messungen/Sekunde
-- `RATE_15HZ` - 15 Messungen/Sekunde (Standard)
-- `RATE_30HZ` - 30 Messungen/Sekunde
-- `RATE_75HZ` - 75 Messungen/Sekunde
+- `RATE_10HZ` - 10 Messungen/Sekunde
+- `RATE_25HZ` - 25 Messungen/Sekunde (Standard)
+- `RATE_50HZ` - 50 Messungen/Sekunde
+- `RATE_100HZ` - 100 Messungen/Sekunde (schnellste)
+
+#### Oversampling einstellen (QMC5883L)
+```python
+compass.set_oversample(compass.OVERSAMPLE_512)
+```
+
+Verfügbare Werte (höher = bessere Auflösung, langsamer):
+- `OVERSAMPLE_512` - 512x Oversampling (Standard, beste Auflösung)
+- `OVERSAMPLE_256` - 256x Oversampling
+- `OVERSAMPLE_128` - 128x Oversampling
+- `OVERSAMPLE_64` - 64x Oversampling (schnellste)
 
 #### Betriebsmodus einstellen
 ```python
@@ -373,9 +441,8 @@ compass.set_mode(compass.MODE_CONTINUOUS)
 ```
 
 Verfügbare Modi:
-- `MODE_CONTINUOUS` - Kontinuierliche Messungen
-- `MODE_SINGLE` - Einzelne Messung
-- `MODE_IDLE` - Standbymodus
+- `MODE_CONTINUOUS` - Kontinuierliche Messungen (Standard)
+- `MODE_STANDBY` - Standbymodus (stromsparend)
 
 ### Kalibrierungsmethoden
 

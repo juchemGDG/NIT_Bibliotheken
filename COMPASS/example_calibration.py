@@ -5,8 +5,8 @@ import time
 # I2C initialisieren
 i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=400000)
 
-# Kompass initialisieren
-compass = Compass(i2c)
+# Kompass initialisieren (QMC5883L auf 0x0D)
+compass = Compass(i2c, addr=0x0D)
 
 # Kalibrierung durchführen (Sensor während Kalibrierung in alle Richtungen drehen)
 print("Kalibrierung wird durchgeführt...")

@@ -10,55 +10,70 @@ import math
 
 class Compass:
     """
-    Kompass-Sensor Treiber für GY-261 (HMC5883L)
+    Kompass-Sensor Treiber für GY-261 (HMC5883L / QMC5883L)
     
     Auslesen des Magnetfeldes in 3 Achsen (X, Y, Z)
     Berechnung des Heading (Kompassrichtung) in Grad
     Kalibrierung und Deklinationswinkelverwaltung
+    
+    Unterstützt:
+    - HMC5883L (Adresse 0x1E)
+    - QMC5883L (Adresse 0x0D) - neuere Version
     """
     
-    # I2C Adresse
-    ADDRESS = 0x1E  # Standard I2C Adresse für HMC5883L
+    # I2C Adressen
+    ADDRESS_HMC5883L = 0x1E  # Standard I2C Adresse für HMC5883L
+    ADDRESS_QMC5883L = 0x0D  # I2C Adresse für QMC5883L (neuere Version)
+    ADDRESS = 0x0D           # Standard: QMC5883L (häufiger in GY-261)
     
-    # Register
-    REG_CONFIG_A = 0x00
-    REG_CONFIG_B = 0x01
-    REG_MODE = 0x02
-    REG_DATA_X_MSB = 0x03
-    REG_DATA_X_LSB = 0x04
+    # QMC5883L Register
+    REG_DATA_X_LSB = 0x00
+    REG_DATA_X_MSB = 0x01
+    REG_DATA_Y_LSB = 0x02
+    REG_DATA_Y_MSB = 0x03
+    REG_DATA_Z_LSB = 0x04
     REG_DATA_Z_MSB = 0x05
-    REG_DATA_Z_LSB = 0x06
-    REG_DATA_Y_MSB = 0x07
-    REG_DATA_Y_LSB = 0x08
-    REG_STATUS = 0x09
-    REG_IDENT_A = 0x0A
+    REG_STATUS = 0x06
+    REG_TEMP_LSB = 0x07
+    REG_TEMP_MSB = 0x08
+    REG_CONFIG_1 = 0x09
+    REG_CONFIG_2 = 0x0A
+    REG_SET_RESET = 0x0B
+    REG_RESERVED = 0x0C
+    REG_CHIP_ID = 0x0D
     
-    # Betriebsmodi
-    MODE_CONTINUOUS = 0x00
-    MODE_SINGLE = 0x01
-    MODE_IDLE = 0x02
+    # Betriebsmodi (QMC5883L)
+    MODE_STANDBY = 0x00
+    MODE_CONTINUOUS = 0x01
     
-    # Messbereich/Gain Optionen
-    GAIN_1370 = 0x00  # 0.73 mG/LSB (Standardbereich)
-    GAIN_1090 = 0x01  # 0.92 mG/LSB
-    GAIN_820 = 0x02   # 1.22 mG/LSB
-    GAIN_660 = 0x03   # 1.52 mG/LSB
-    GAIN_440 = 0x04   # 2.27 mG/LSB
-    GAIN_330 = 0x05   # 3.03 mG/LSB
-    GAIN_220 = 0x06   # 4.35 mG/LSB
-    GAIN_165 = 0x07   # 5.80 mG/LSB
+    # Messbereich/Range Optionen (QMC5883L)
+    # In Config 1: Bits 7-6
+    RANGE_2G = 0x00      # ±2 Gauss (best resolution)
+    RANGE_8G = 0x01      # ±8 Gauss
+    RANGE_12G = 0x02     # ±12 Gauss
+    RANGE_30G = 0x03     # ±30 Gauss (largest range)
     
-    # Sample Rate Optionen
-    RATE_0_75HZ = 0x00
-    RATE_1_5HZ = 0x01
-    RATE_3HZ = 0x02
-    RATE_7_5HZ = 0x03
-    RATE_15HZ = 0x04       # Standard
-    RATE_30HZ = 0x05
-    RATE_75HZ = 0x06
+    # Sample Rate Optionen (QMC5883L)
+    # In Config 1: Bits 3-2
+    RATE_10HZ = 0x00
+    RATE_25HZ = 0x01
+    RATE_50HZ = 0x02
+    RATE_100HZ = 0x03
     
-    # Messbereiche für verschiedene Gains
-    RANGE_LSBS = [0.73, 0.92, 1.22, 1.52, 2.27, 3.03, 4.35, 5.80]
+    # Oversample Optionen (QMC5883L)
+    # In Config 1: Bits 5-4
+    OVERSAMPLE_512 = 0x00
+    OVERSAMPLE_256 = 0x01
+    OVERSAMPLE_128 = 0x02
+    OVERSAMPLE_64 = 0x03
+    
+    # Empfindlichkeiten für verschiedene Ranges (in mG)
+    RANGE_SENSITIVITY = {
+        RANGE_2G: 0.00833,    # 2 Gauss = 2000 mG, 16-bit = 0.061 mG/LSB
+        RANGE_8G: 0.03333,    # 8 Gauss
+        RANGE_12G: 0.05,      # 12 Gauss
+        RANGE_30G: 0.12083    # 30 Gauss
+    }
     
     def __init__(self, i2c, addr=ADDRESS, scl=22, sda=21):
         """
@@ -66,7 +81,7 @@ class Compass:
         
         Args:
             i2c: I2C Bus Objekt (oder None zum Auto-Erstellen)
-            addr: I2C Adresse (Standard: 0x1E)
+            addr: I2C Adresse (Standard: 0x0D für QMC5883L, 0x1E für HMC5883L)
             scl: SCL Pin falls i2c=None
             sda: SDA Pin falls i2c=None
         """
@@ -76,7 +91,9 @@ class Compass:
             self.i2c = i2c
         
         self.addr = addr
-        self.gain = self.GAIN_1370  # Standardbereich
+        self.range = self.RANGE_2G  # Standard: ±2 Gauss
+        self.sample_rate = self.RATE_25HZ
+        self.oversample = self.OVERSAMPLE_512
         self.declination = 0  # Lokale Deklination in Grad
         
         # Kalibrierungswerte
@@ -105,49 +122,67 @@ class Compass:
         return self.i2c.readfrom_mem(self.addr, reg, count)
     
     def _initialize(self):
-        """Sensor initialisieren"""
-        # Config A: Sample Rate und Measurement Mode
-        # Bits 7:5 = Sample Rate (default 15 Hz)
-        # Bits 4:3 = Measurement Mode (normal)
-        config_a = (self.RATE_15HZ << 2) | 0x00
-        self._write_register(self.REG_CONFIG_A, config_a)
+        """Sensor initialisieren (QMC5883L)"""
+        # Reset: Set/Reset Strobe
+        self._write_register(self.REG_SET_RESET, 0x01)
         
-        # Config B: Gain/Range
-        self._write_register(self.REG_CONFIG_B, self.gain << 5)
+        # Config 1: Range, Sample Rate, Oversample
+        # Bits 7-6: Range (0x00 = ±2G)
+        # Bits 5-4: Oversample (0x00 = 512)
+        # Bits 3-2: Sample Rate (0x01 = 25 Hz)
+        # Bit 1-0: Mode (0x01 = Continuous)
+        config1 = (self.range << 6) | (self.oversample << 4) | (self.sample_rate << 2) | self.MODE_CONTINUOUS
+        self._write_register(self.REG_CONFIG_1, config1)
         
-        # Mode: Continuous Measurement
-        self._write_register(self.REG_MODE, self.MODE_CONTINUOUS)
+        # Config 2: keine kritischen Settings (default OK)
+        self._write_register(self.REG_CONFIG_2, 0x00)
     
-    def set_gain(self, gain):
+    def set_range(self, range_val):
         """
         Messbereich einstellen
-        Höhere Gains = höhere Auflösung, kleinerer Messbereich
         
         Args:
-            gain: GAIN_1370 bis GAIN_165
+            range_val: RANGE_2G, RANGE_8G, RANGE_12G, oder RANGE_30G
         """
-        self.gain = gain
-        self._write_register(self.REG_CONFIG_B, gain << 5)
+        self.range = range_val
+        config1 = self._read_register(self.REG_CONFIG_1)
+        new_config = (config1 & 0x3F) | (range_val << 6)
+        self._write_register(self.REG_CONFIG_1, new_config)
+    
+    def set_oversample(self, oversample):
+        """
+        Oversample Rate einstellen (mehr = bessere Auflösung, langsamer)
+        
+        Args:
+            oversample: OVERSAMPLE_512, OVERSAMPLE_256, OVERSAMPLE_128, oder OVERSAMPLE_64
+        """
+        self.oversample = oversample
+        config1 = self._read_register(self.REG_CONFIG_1)
+        new_config = (config1 & 0xCF) | (oversample << 4)
+        self._write_register(self.REG_CONFIG_1, new_config)
     
     def set_sample_rate(self, rate):
         """
-        Sample Rate einstellen
+        Sample Rate einstellen (QMC5883L)
         
         Args:
-            rate: RATE_0_75HZ bis RATE_75HZ
+            rate: RATE_10HZ, RATE_25HZ, RATE_50HZ, oder RATE_100HZ
         """
-        current = self._read_register(self.REG_CONFIG_A)
-        new_config = (current & 0xE3) | (rate << 2)
-        self._write_register(self.REG_CONFIG_A, new_config)
+        self.sample_rate = rate
+        config1 = self._read_register(self.REG_CONFIG_1)
+        new_config = (config1 & 0xF3) | (rate << 2)
+        self._write_register(self.REG_CONFIG_1, new_config)
     
     def set_mode(self, mode):
         """
-        Betriebsmodus einstellen
+        Betriebsmodus einstellen (QMC5883L)
         
         Args:
-            mode: MODE_CONTINUOUS, MODE_SINGLE, oder MODE_IDLE
+            mode: MODE_STANDBY oder MODE_CONTINUOUS
         """
-        self._write_register(self.REG_MODE, mode)
+        config1 = self._read_register(self.REG_CONFIG_1)
+        new_config = (config1 & 0xFE) | mode
+        self._write_register(self.REG_CONFIG_1, new_config)
     
     def set_declination(self, degrees, minutes=0):
         """
@@ -162,18 +197,18 @@ class Compass:
     
     def read_raw(self):
         """
-        Rohdaten auslesen
+        Rohdaten auslesen (QMC5883L Format)
         
         Returns:
             Tuple (x, y, z) - rohe ADC-Werte
         """
-        # Daten lesen: X(MSB,LSB), Z(MSB,LSB), Y(MSB,LSB)
-        data = self._read_registers(self.REG_DATA_X_MSB, 6)
+        # QMC5883L: Register mit LSB zuerst
+        data = self._read_registers(self.REG_DATA_X_LSB, 6)
         
-        # 16-Bit Werte zusammensetzen (Big-Endian)
-        x = (data[0] << 8) | data[1]
-        z = (data[2] << 8) | data[3]
-        y = (data[4] << 8) | data[5]
+        # 16-Bit Werte zusammensetzen (Little-Endian)
+        x = (data[1] << 8) | data[0]
+        y = (data[3] << 8) | data[2]
+        z = (data[5] << 8) | data[4]
         
         # Als signed int interpretieren
         if x > 32767:
@@ -198,12 +233,13 @@ class Compass:
         """
         x, y, z = self.read_raw()
         
-        # Rohdaten mit mG/LSB Wert umrechnen
-        lsb = self.RANGE_LSBS[self.gain]
+        # QMC5883L: Empfindlichkeit abhängig vom Range
+        # LSB = 1 mG pro LSB bei ±2G, proportional für andere Ranges
+        sensitivity = self.RANGE_SENSITIVITY[self.range]
         
-        x_mg = (x + self.calibration_x) * lsb
-        y_mg = (y + self.calibration_y) * lsb
-        z_mg = (z + self.calibration_z) * lsb
+        x_mg = (x + self.calibration_x) * sensitivity
+        y_mg = (y + self.calibration_y) * sensitivity
+        z_mg = (z + self.calibration_z) * sensitivity
         
         return x_mg, y_mg, z_mg
     
@@ -321,10 +357,61 @@ class Compass:
     
     def is_ready(self):
         """
-        Prüfen ob neue Daten verfügbar sind
+        Prüfen ob neue Daten verfügbar sind (QMC5883L)
         
         Returns:
             bool - True wenn Messung bereit
         """
         status = self._read_register(self.REG_STATUS)
-        return (status & 0x01) == 0  # Bit 0: Data Ready
+        return (status & 0x01) == 1  # Bit 0: DRDY (Data Ready)
+    
+    def calculate_rotation(self, start_heading, end_heading):
+        """
+        Drehwinkel zwischen zwei Kompassrichtungen berechnen
+        
+        Args:
+            start_heading: Start-Heading in Grad (0-360)
+            end_heading: End-Heading in Grad (0-360)
+        
+        Returns:
+            float - Drehwinkel in Grad
+                    positiv = Drehung im Uhrzeigersinn (rechts)
+                    negativ = Drehung gegen Uhrzeigersinn (links)
+                    Bereich: -180° bis +180°
+        
+        Beispiele:
+            von 10° nach 90°  -> +80°  (80° im Uhrzeigersinn)
+            von 90° nach 10°  -> -80°  (80° gegen Uhrzeigersinn)
+            von 350° nach 10° -> +20°  (20° im Uhrzeigersinn über 0°)
+            von 10° nach 350° -> -20°  (20° gegen Uhrzeigersinn über 0°)
+        """
+        # Differenz berechnen
+        rotation = end_heading - start_heading
+        
+        # Auf kürzesten Weg normalisieren (-180 bis +180)
+        if rotation > 180:
+            rotation -= 360
+        elif rotation < -180:
+            rotation += 360
+        
+        return rotation
+    
+    def get_rotation_direction(self, start_heading, end_heading):
+        """
+        Drehrichtung als Text ausgeben
+        
+        Args:
+            start_heading: Start-Heading in Grad (0-360)
+            end_heading: End-Heading in Grad (0-360)
+        
+        Returns:
+            str - "rechts" (im Uhrzeigersinn) oder "links" (gegen Uhrzeigersinn)
+        """
+        rotation = self.calculate_rotation(start_heading, end_heading)
+        
+        if rotation > 0:
+            return "rechts"
+        elif rotation < 0:
+            return "links"
+        else:
+            return "keine Drehung"
