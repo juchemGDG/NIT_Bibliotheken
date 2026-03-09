@@ -1,0 +1,168 @@
+================================================================================
+  HD44780 LCD – Zeichentabelle (ROM A00)
+  Referenz für die NIT lcd.py-Bibliothek
+================================================================================
+
+BENUTZUNG MIT UNSERER BIBLIOTHEK
+─────────────────────────────────
+
+1) Automatisch gemappte Zeichen (einfach im Text verwenden):
+
+   lcd.print("Temperatur: 23.5°C", 0, 0)    # ° wird automatisch erkannt
+   lcd.print("Größe: 5 Ärmel", 0, 1)         # ö, ß, Ä werden erkannt
+   lcd.print("Wir ♥ Python!", 0, 2)           # ♥ wird erkannt
+
+   Aktuell automatisch gemappt:
+   ä ö ü Ä Ö Ü ß  → eigene Zeichen (CGRAM 0-6)
+   ♥               → eigenes Zeichen (CGRAM 7)
+   °               → ROM-Adresse 0xDF
+
+2) Weitere ROM-Zeichen direkt per Code anzeigen:
+
+   # Einzelnes Zeichen per Hex-Code an aktueller Cursor-Position senden:
+   lcd.treiber.zeichen_senden(0xE4)           # μ (Mikro) anzeigen
+
+   # Oder in einem Text mit chr():
+   lcd.print("R=" + chr(0xF4) + "hm", 0, 0)  # Ω nicht automatisch gemappt
+
+   # TIPP: Neue Zeichen dauerhaft automatisch verfügbar machen?
+   # In lcd.py in der _ROM_MAP ergänzen:
+   # _ROM_MAP = {'°': 0xDF, 'µ': 0xE4, 'Ω': 0xF4, ...}
+   # Dann geht: lcd.print("10µF  2Ω", 0, 0)
+
+
+================================================================================
+  ZEICHENTABELLE – ASCII-Bereich (0x20 - 0x7F)
+================================================================================
+
+  Diese Zeichen kann man normal im Text verwenden.
+
+  0x20: (Leerzeichen)   0x30: 0   0x40: @   0x50: P   0x60: `   0x70: p
+  0x21: !               0x31: 1   0x41: A   0x51: Q   0x61: a   0x71: q
+  0x22: "               0x32: 2   0x42: B   0x52: R   0x62: b   0x72: r
+  0x23: #               0x33: 3   0x43: C   0x53: S   0x63: c   0x73: s
+  0x24: $               0x34: 4   0x44: D   0x54: T   0x64: d   0x74: t
+  0x25: %               0x35: 5   0x45: E   0x55: U   0x65: e   0x75: u
+  0x26: &               0x36: 6   0x46: F   0x56: V   0x66: f   0x76: v
+  0x27: '               0x37: 7   0x47: G   0x57: W   0x67: g   0x77: w
+  0x28: (               0x38: 8   0x48: H   0x58: X   0x68: h   0x78: x
+  0x29: )               0x39: 9   0x49: I   0x59: Y   0x69: i   0x79: y
+  0x2A: *               0x3A: :   0x4A: J   0x5A: Z   0x6A: j   0x7A: z
+  0x2B: +               0x3B: ;   0x4B: K   0x5B: [   0x6B: k   0x7B: {
+  0x2C: ,               0x3C: <   0x4C: L   0x5C: ¥   0x6C: l   0x7C: |
+  0x2D: -               0x3D: =   0x4D: M   0x5D: ]   0x6D: m   0x7D: }
+  0x2E: .               0x3E: >   0x4E: N   0x5E: ^   0x6E: n   0x7E: →
+  0x2F: /               0x3F: ?   0x4F: O   0x5F: _   0x6F: o   0x7F: ←
+
+  Hinweis: 0x5C ist ¥ (Yen) statt \ im ROM A00!
+           0x7E ist → (Pfeil rechts) statt ~
+           0x7F ist ← (Pfeil links)
+
+
+================================================================================
+  SONDERZEICHEN – Japanische Katakana (0xA0 - 0xDF)
+================================================================================
+
+  Für die meisten Projekte nicht relevant, aber das Grad-Zeichen (0xDF)
+  am Ende dieses Bereichs ist sehr nützlich!
+
+  0xA1: 。  0xA6: ヲ  0xAB: ェ  0xB0: ー  0xB5: オ  0xBA: コ  0xBF: ソ
+  0xA2: 「  0xA7: ァ  0xAC: ォ  0xB1: ア  0xB6: カ  0xBB: サ  0xC0: タ
+  0xA3: 」  0xA8: ィ  0xAD: ャ  0xB2: イ  0xB7: キ  0xBC: シ  0xC1: チ
+  0xA4: 、  0xA9: ゥ  0xAE: ュ  0xB3: ウ  0xB8: ク  0xBD: ス  0xC2: ツ
+  0xA5: ・  0xAA: ェ  0xAF: ョ  0xB4: エ  0xB9: ケ  0xBE: セ  0xC3: テ
+
+  0xC4: ト  0xC9: ネ  0xCE: ホ  0xD3: モ  0xD8: リ  0xDD: ン
+  0xC5: ナ  0xCA: ノ  0xCF: マ  0xD4: ヤ  0xD9: ル  0xDE: ゙ (Dakuten)
+  0xC6: ニ  0xCB: ハ  0xD0: ミ  0xD5: ユ  0xDA: レ
+  0xC7: ヌ  0xCC: ヒ  0xD1: ム  0xD6: ヨ  0xDB: ロ
+  0xC8: ネ  0xCD: フ  0xD2: メ  0xD7: ラ  0xDC: ワ
+
+  0xDF: °  ← Grad-Zeichen! (automatisch gemappt in unserer Bibliothek)
+
+
+================================================================================
+  SONDERZEICHEN – Griechisch, Mathe & Spezial (0xE0 - 0xFF)
+================================================================================
+
+  Besonders nützlich für technische/wissenschaftliche Anzeigen!
+
+  Adresse  Zeichen  Bedeutung           Beispiel
+  ───────  ───────  ──────────────────  ────────────────────────────────
+  0xE0     α        Alpha               Winkel α
+  0xE1     ä        a-Umlaut            (in unserer Lib über CGRAM gelöst)
+  0xE2     β        Beta                β-Strahlung
+  0xE3     ε        Epsilon             Dielektrizität ε
+  0xE4     μ        Mikro/My            10μF, μController
+  0xE5     σ        Sigma (klein)       Standardabweichung σ
+  0xE6     ρ        Rho                 Dichte ρ
+  0xE7     g        (Sonder-g)
+  0xE8     √        Wurzel              √2 = 1.41
+  0xE9     ⁻¹       Hoch minus eins     s⁻¹
+  0xEA     j        (Sonder-j)
+  0xEB     ˣ        Hoch x
+  0xEC     ¢        Cent
+  0xED     £        Pfund
+  0xEE     ñ        n-Tilde             Español
+  0xEF     ö        o-Umlaut            (in unserer Lib über CGRAM gelöst)
+  0xF0     p        (Sonder-p)
+  0xF1     q        (Sonder-q)
+  0xF2     θ        Theta               Winkel θ
+  0xF3     ∞        Unendlich           Grenzwert → ∞
+  0xF4     Ω        Omega/Ohm           470Ω Widerstand
+  0xF5     ü        u-Umlaut            (in unserer Lib über CGRAM gelöst)
+  0xF6     Σ        Summe               Σ aller Werte
+  0xF7     π        Pi                  π = 3.14159
+  0xF8     x̄        x-quer              Mittelwert x̄
+  0xF9     千       Tausend (japan.)
+  0xFA     万       Zehntausend (japan.)
+  0xFB     円       Yen (japan.)
+  0xFC     ÷        Division            12 ÷ 4 = 3
+  0xFD     (leer)
+  0xFE     (leer)
+  0xFF     █        Voller Block        Balkenanzeige
+
+
+================================================================================
+  EIGENE ZEICHEN – CGRAM (0x00 - 0x07)
+================================================================================
+
+  Der HD44780 hat 8 Speicherplätze für selbst definierte 5×8-Pixel-Zeichen.
+  In unserer Bibliothek sind diese wie folgt belegt:
+
+  Adresse  Zeichen  Belegt durch
+  ───────  ───────  ──────────────────
+  0x00     ä        Umlaut (fest)
+  0x01     ö        Umlaut (fest)
+  0x02     ü        Umlaut (fest)
+  0x03     Ä        Umlaut (fest)
+  0x04     Ö        Umlaut (fest)
+  0x05     Ü        Umlaut (fest)
+  0x06     ß        Eszett (fest)
+  0x07     ♥        Herz (änderbar!)
+
+  → Warum CGRAM statt ROM?
+    Die ROM-Versionen von ä/ö/ü (0xE1/0xEF/0xF5) existieren zwar,
+    aber Ä, Ö, Ü und ß sind NICHT im ROM vorhanden.
+    Daher nutzen wir CGRAM für alle 7 deutschen Sonderzeichen,
+    damit sie konsistent aussehen und direkt im Text verwendbar sind.
+
+  → Platz 7 (♥) kann frei geändert werden:
+    lcd.eigenes_zeichen(7, [0b00000, 0b01010, 0b11111, ...])
+
+  → Wer MEHR eigene Zeichen braucht, kann dafür Umlaute entfernen.
+    Dazu in lcd.py den Eintrag aus _UMLAUTE_CGRAM und _UMLAUT_MAP löschen.
+
+
+================================================================================
+  HINWEIS: ROM A00 vs. ROM A02
+================================================================================
+
+  Die meisten LCD-Displays verwenden ROM A00 (japanisch/international).
+  Es gibt auch ROM A02 (europäisch) mit anderen Zeichen im Bereich 0x80-0xFF.
+  Diese Tabelle bezieht sich auf ROM A00 – den am weitesten verbreiteten Typ.
+
+  Falls ein Zeichen nicht so aussieht wie erwartet, hat das Display
+  möglicherweise einen anderen ROM-Typ.
+
+================================================================================
