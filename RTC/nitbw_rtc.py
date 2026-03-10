@@ -2,7 +2,7 @@
 NIT Bibliothek: RTC - Echtzeituhr (Real Time Clock)
 Fuer ESP32 mit MicroPython
 
-Version:    1.0.0
+Version:    1.0.2
 Autor:      Volker Rust
 Lizenz:     MIT (siehe LICENSE)
 Erstellt:   2026-03
@@ -170,6 +170,15 @@ class RTCBasis:
         return _MONATE[self.monat() - 1]
 
     # --- Formatierung -------------------------------------------------------
+
+    def __str__(self):
+        """
+        Gibt eine menschenlesbare Standarddarstellung der aktuellen RTC-Zeit.
+
+        Returns:
+            str: Datum und Uhrzeit im Format 'YYYY-MM-DD hh:mm:ss'
+        """
+        return self.toString("YYYY-MM-DD hh:mm:ss")
 
     def toString(self, fmt):
         """
