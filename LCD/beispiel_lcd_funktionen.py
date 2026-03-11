@@ -1,30 +1,18 @@
 """
-Funktionstest für die LCD-Bibliothek (lcd.py) auf dem ESP32 mit MicroPython.
-Für ein 20x4 LCD-Display.
-
-Dieses Programm führt nacheinander viele Funktionen der LCD-Klasse vor.
-Nach jedem Abschnitt wird kurz gewartet, damit man das Ergebnis auf dem
-Display sehen kann. Am Ende läuft eine Endlosschleife mit einem
-simulierten Sensor-Fortschrittsbalken.
-
-Anschlüsse:
-LCD (I2C-Adapter)      ESP32
-GND  ──────────────>   GND
-VCC  ──────────────>   5V (VIN)
-SDA  ──────────────>   GPIO 21
-SCL  ──────────────>   GPIO 22
-
-Volker Rust
-03.2026
+Beispiel fuer NIT Bibliothek: LCD
+Zeigt: Uebersicht ueber zentrale LCD-Funktionen
+Hardware: HD44780 LCD mit PCF8574 I2C-Adapter (20x4)
 """
 
-from lcd import LCD
+from nitbw_lcd import LCD
 import time
+import random
 
-# ── LCD initialisieren (20x4, mit Begrüßung) ───────────────────
+# --- Initialisierung ---
 lcd = LCD(scl=22, sda=21, addr=0x27)
 
 
+# --- Hauptprogramm ---
 # ================================================================
 # 1) Textausgabe: print, print_center, print_right
 # ================================================================
@@ -224,7 +212,6 @@ time.sleep(2)
 lcd.clear()
 lcd.print_center("== Sensor-Monitor ==", 0)
 
-import random
 zaehler = 0
 
 while True:
