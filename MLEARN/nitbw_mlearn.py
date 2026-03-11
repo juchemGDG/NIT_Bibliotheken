@@ -1,6 +1,29 @@
+"""
+NIT Bibliothek: MLEARN - Einfache ML-Algorithmen fuer MicroPython
+Fuer ESP32 mit MicroPython
+
+Version:    1.1.0
+Autor:      Stephan Juchem
+Lizenz:     MIT (siehe LICENSE)
+Erstellt:   2026-03
+
+Enthaelt kNN, logistische Regression und Decision Tree fuer Lern- und Demozwecke.
+Die Implementierung ist kompakt gehalten und fuer Mikrocontroller optimiert.
+"""
+
 import math
 
 class MLearn:
+    """
+    Bietet grundlegende ML-Verfahren fuer kleine Datensaetze auf dem ESP32.
+
+    Unterstuetzte Hardware:
+    - ESP32 mit MicroPython
+    - Andere MicroPython-faehige Boards mit ausreichendem RAM
+
+    Schnittstelle: Dateisystem (CSV)
+    """
+
     def __init__(self, k=3, lr=0.1, epochs=200):
         self.k = k
         self.lr = lr

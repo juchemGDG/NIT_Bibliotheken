@@ -1,7 +1,14 @@
 """
-GY-261 Kompass Sensor Bibliothek für MicroPython auf ESP32
-Basiert auf HMC5883L 3-Achsen Magnetfeld-Sensor
-Keine externen Abhängigkeiten (außer machine.I2C)
+NIT Bibliothek: COMPASS - Kompass und Magnetfeldmessung fuer GY-261
+Fuer ESP32 mit MicroPython
+
+Version:    1.1.0
+Autor:      Stephan Juchem
+Lizenz:     MIT (siehe LICENSE)
+Erstellt:   2026-03
+
+Unterstuetzt QMC5883L und HMC5883L mit Heading-Berechnung und Kalibrierung.
+Optimiert fuer den Einsatz im Unterricht mit klarer API fuer Richtungsdaten.
 """
 
 from machine import I2C, Pin
@@ -10,15 +17,13 @@ import math
 
 class Compass:
     """
-    Kompass-Sensor Treiber für GY-261 (HMC5883L / QMC5883L)
-    
-    Auslesen des Magnetfeldes in 3 Achsen (X, Y, Z)
-    Berechnung des Heading (Kompassrichtung) in Grad
-    Kalibrierung und Deklinationswinkelverwaltung
-    
-    Unterstützt:
-    - HMC5883L (Adresse 0x1E)
-    - QMC5883L (Adresse 0x0D) - neuere Version
+    Berechnet Kompassrichtung aus den Magnetfelddaten des GY-261 Moduls.
+
+    Unterstuetzte Hardware:
+    - GY-261 mit QMC5883L (0x0D)
+    - GY-261 mit HMC5883L (0x1E)
+
+    Schnittstelle: I2C
     """
     
     # I2C Adressen

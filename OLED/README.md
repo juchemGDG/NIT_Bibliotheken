@@ -1,320 +1,112 @@
-# OLED Display Treiber
+# NIT Bibliothek: OLED
 
-Eine leistungsstarke und benutzerfreundliche MicroPython-Bibliothek zur Ansteuerung von OLED-Displays auf dem **ESP32**. Unterstützt sowohl **SSD1306** als auch **SH1106** Displays mit vollständiger Grafik- und Text-Funktionalität.
+## Beschreibung
+Die Bibliothek `nitbw_oled.py` steuert OLED-Displays mit SSD1306 oder SH1106 ueber I2C an. Neben Textausgabe bietet sie eine umfangreiche Grafik-API mit Linien, Rechtecken, Kreisen und Balkendiagrammen. Alle Zeichenoperationen laufen gepuffert und werden mit `show()` in einem Schritt auf dem Display aktualisiert.
 
-## ✨ Features
+## Features
+- Unterstuetzung fuer SSD1306 und SH1106 (128x64)
+- Integrierte Treiberlogik ohne externe Zusatzmodule
+- Zwei Schriftarten: Systemfont und Sans-Font
+- Textausgabe mit Position, Skalierung und Fontwahl
+- Pixel-, Linien-, Rechteck- und Kreisfunktionen
+- Gefuellte Formen (`fill_rect`, `fill_circle`)
+- Hilfsmethoden fuer Datenvisualisierung (`map`, `progress_bar`, `draw_bar`)
+- Optionales Startlogo bei Initialisierung
+- Kompakter Buffer-Ansatz fuer flimmerarme Darstellung
+- Einfacher Einsatz im Unterricht mit klaren Methoden
 
-- **Plug-and-Play Support**: Einfache Initialisierung und Verwendung
-- **Dual-Chip Unterstützung**: Kompatibel mit SSD1306 und SH1106 Controllern
-- **Umfangreiche Grafik-API**: 
-  - Text-Ausgabe (zwei Schriftarten)
-  - Linien, Rechtecke, Kreise
-  - Pixel-Level Kontrolle
-- **Datenvisualisierung**:
-  - `map()` - Sensordaten auf Pixel abbilden
-  - `progress_bar()` - Fortschrittsbalken
-  - `draw_bar()` - Einzelne Balken (Audio-Visualizer, Sensoren)
-- **Integrierte Bitmap-Schriftart**: Serifenlose 5x7 Schriftart ohne externe Abhängigkeiten
-- **Keine externen Abhängigkeiten**: Vollständige Treiber-Implementierung
-- **I2C Interface**: Standard I2C Kommunikation mit konfigurierbare Adressen
+## Hardware
+- OLED 128x64 mit SSD1306 oder SH1106 Controller
+- I2C-Adresse typischerweise `0x3C` (alternativ oft `0x3D`)
+- Versorgung mit 3.3V
+- Hinweise:
+  - SH1106-Module brauchen `chip='sh1106'`.
+  - Falsche Adresse ist die haeufigste Fehlerursache.
+  - Lange Leitungen koennen zu I2C-Problemen fuehren.
 
-## 🚀 Quick Start
+## Anschluss
+Beispiel ESP32-Standardpins:
 
-### Installation
+- `VCC -> 3V3`
+- `GND -> GND`
+- `SCL -> GPIO 22`
+- `SDA -> GPIO 21`
 
-Laden Sie die Datei `oled.py` auf den ESP32 (z.B. nach `/`). Danach können Sie sie direkt importieren:
+## Installation
+- Datei `nitbw_oled.py` auf den ESP32 kopieren.
+- Import im Projekt: `from nitbw_oled import OLED`.
 
+## Schnellstart
 ```python
-from oled import OLED
+from nitbw_oled import OLED
 
-# Display initialisieren (SSD1306)
-oled = OLED(scl=22, sda=21, chip='ssd1306')
+# Display initialisieren
+oled = OLED(scl=22, sda=21, chip='ssd1306', addr=0x3C)
 
-# Text ausgeben
-oled.print("Hello World", 0, 0)
-oled.show()  # Anzeigen!
-
-# Display löschen
+# Text in den Buffer schreiben
 oled.clear()
-```
+oled.print('Hallo NIT', 0, 0, font='sans')
 
-## 📚 Verwendungsbeispiele
-
-### Beispiel 1: Einfache Text-Ausgabe
-
-```python
-from oled import OLED
-import time
-
-# Initialisierung
-oled = OLED(scl=22, sda=21, chip='ssd1306')
-
-# Nach dem INIT-Logo (2 Sekunden) startet dieser Code
-oled.clear()
-
-# Text mit Systemschriftart
-oled.print("NIT Bibliotheken", 0, 0)
-oled.print("OLED Display", 0, 10)
-oled.show()  # Alle Änderungen anzeigen
-
-time.sleep(2)
-
-# Text mit serifenloser Schriftart
-oled.clear()
-oled.print("Text in SANS", 0, 0, font='sans')
-oled.print("Vergrößert x2", 0, 20, font='sans', scale=2)
-oled.show()  # Alle Änderungen anzeigen
-
-time.sleep(2)
-```
-
-### Beispiel 2: Geometrische Formen
-
-```python
-from oled import OLED
-import time
-
-oled = OLED(scl=22, sda=21, chip='ssd1306')
-oled.clear()
-
-# Rechtecke
-oled.draw_rect(10, 10, 50, 30)      # Umriss
-oled.fill_rect(70, 10, 50, 30)      # Gefüllt
-oled.show()  # Alle Änderungen anzeigen
-
-time.sleep(1)
-oled.clear()
-
-# Kreise
-oled.draw_circle(40, 40, 15)        # Umriss
-oled.fill_circle(90, 40, 15)        # Gefüllt
-oled.show()  # Alle Änderungen anzeigen
-
-time.sleep(1)
-oled.clear()
-
-# Linien
-oled.line(0, 0, 127, 63)            # Diagonale
-oled.line(127, 0, 0, 63)            # Andere Diagonale
-oled.show()  # Alle Änderungen anzeigen
-
-time.sleep(1)
-```
-
-### Beispiel 3: ADC-Sensor-Visualisierung (Scatterplot)
-
-```python
-from oled import OLED
-from machine import ADC, Pin
-import time
-
-# Initialisierung
-oled = OLED(scl=22, sda=21, chip='ssd1306')
-
-# ADC auf GPIO 32 definieren (12-Bit: 0-4095)
-adc = ADC(Pin(32))
-
-# Puffer für Datenpunkte (128 Pixel breit)
-data_points = []
-max_points = 128
-
-# Konfiguration
-MEASURE_INTERVAL = 0.2  # Messen alle 0,2 Sekunden
-ADC_MIN = 0
-ADC_MAX = 4095
-
-oled.clear()
-oled.print("ADC Sensor", 35, 0, font='sans')
+# Einmal anzeigen
 oled.show()
-
-last_measure = time.time()
-
-while True:
-    current_time = time.time()
-    
-    # Neue Messung durchführen
-    if current_time - last_measure >= MEASURE_INTERVAL:
-        # ADC-Wert auslesen (0-4095)
-        adc_value = adc.read()
-        
-        # ADC-Wert auf Display-Höhe (0-63) abbilden
-        # Oben = Maximalwert, Unten = Minimalwert
-        pixel_y = oled.map(adc_value, ADC_MIN, ADC_MAX, 63, 0)
-        
-        # Datenpunkt speichern
-        data_points.append(pixel_y)
-        
-        # Maximal 128 Punkte speichern (Bildbreite)
-        if len(data_points) > max_points:
-            data_points.pop(0)
-        
-        # Display aktualisieren - ALLE Zeichenoperationen in Puffer schreiben
-        oled.clear()
-        
-        # Header-Informationen
-        oled.print(f"ADC: {adc_value}", 0, 0, font='sans')
-        pixel_x = oled.map(adc_value, ADC_MIN, ADC_MAX, 0, 128)
-        oled.print(f"Pos: {pixel_x:3d}", 70, 0, font='sans')
-        
-        # Referenzlinien zeichnen
-        oled.hline(0, 32, 128, 0)  # Mittellinie (Mitte = 2048)
-        oled.hline(0, 16, 128, 0)  # Quartil oben
-        oled.hline(0, 48, 128, 0)  # Quartil unten
-        
-        # Scatterplot zeichnen
-        for i, y in enumerate(data_points):
-            pixel_x = int(i * 128 / max_points)
-            oled.pixel(pixel_x, y, 1)
-        
-        # JETZT erst anzeigen - verhindert Flimmern!
-        oled.show()
-        last_measure = current_time
-    
-    time.sleep(0.01)  # Kleine Pause zur CPU-Entlastung
 ```
 
-### Beispiel 4: Audio-Visualizer mit draw_bar()
+## API-Referenz
+Konstruktor: `OLED(scl=22, sda=21, chip='ssd1306', enabled=True, i2c_id=0, addr=0x3c, logo=True)`
 
+| Parameter | Typ | Standard | Beschreibung |
+|---|---|---|---|
+| `scl` | `int` | `22` | SCL-Pin |
+| `sda` | `int` | `21` | SDA-Pin |
+| `chip` | `str` | `'ssd1306'` | Controller (`ssd1306` oder `sh1106`) |
+| `enabled` | `bool` | `True` | Display ein/aus |
+| `i2c_id` | `int` | `0` | I2C-Busnummer |
+| `addr` | `int` | `0x3c` | I2C-Adresse |
+| `logo` | `bool` | `True` | Startlogo zeigen |
+
+Wichtige Methoden:
+- `print(string, x=0, y=0, font='serif', scale=1, color=1)`
+- `clear()` / `show()`
+- `pixel(x, y, color=1)`
+- `line(x1, y1, x2, y2, color=1)`
+- `hline(x, y, w, color=1)` / `vline(x, y, h, color=1)`
+- `draw_rect(...)` / `fill_rect(...)`
+- `draw_circle(...)` / `fill_circle(...)`
+- `map(value, in_min, in_max, out_min, out_max)`
+- `progress_bar(...)` / `draw_bar(...)`
+
+## Beispiele
+Dateien im Ordner:
+- `OLED/beispiel_oled_schnellstart.py`
+- `OLED/beispiel_oled.py`
+- `OLED/beispiel_oled_funktionen.py`
+
+Snippet 1: Linie und Text kombinieren
 ```python
-from oled import OLED
-import time
-
-oled = OLED(scl=22, sda=21, chip='ssd1306')
 oled.clear()
-oled.print("Audio-Viz", 35, 0, font='sans')
+oled.hline(0, 10, 128)
+oled.print('Sensor A', 0, 0)
 oled.show()
-time.sleep(1)
-
-# Simulierte Sensordaten
-import random
-
-while True:
-    oled.clear()
-    
-    # Simuliert 4 ADC-Eingänge
-    values = [random.randint(0, 4095) for _ in range(4)]
-    
-    # Konvertiere zu Prozentwert (0-4095 -> 0-100%)
-    percents = [oled.map(v, 0, 4095, 0, 100) for v in values]
-    
-    # Zeichne 4 vertikale Balken nebeneinander
-    bar_width = 28
-    bar_height = 50
-    spacing = 2
-    
-    for i, percent in enumerate(percents):
-        x = i * (bar_width + spacing) + 2
-        oled.draw_bar(x, 10, bar_width, bar_height, percent)
-        
-        # Zahlenwert über dem Balken
-        oled.print(f"{percent:3d}%", x, 62, font='sans')
-    
-    # JETZT erst anzeigen - verhindert Flimmern!
-    oled.show()
-    time.sleep(0.1)
 ```
 
-## 🔌 PIN-Konfiguration (Beispiel ESP32)
-
-```
-ESP32 PIN       Funktion          Standardwert
-GPIO 22         I2C SCL           scl=22
-GPIO 21         I2C SDA           sda=21
-GND             Ground            
-3.3V            Power             
-```
-
-Sie können die Pins anpassen, wenn Sie andere GPIO-Pins verwenden möchten:
-
+Snippet 2: Fortschrittsbalken
 ```python
-oled = OLED(scl=5, sda=4, chip='ssd1306')  # Alternative Pins
-```
-
-## 📖 API Referenz
-
-### ⚠️ Wichtig: Buffer-Verwaltung
-
-**Alle Zeichenmethoden schreiben in einen Puffer und zeigen NICHT automatisch an!**
-
-Um Flimmern zu vermeiden, sollten Sie:
-1. Alle Zeichenoperationen durchführen (im Puffer)
-2. **Einmal** `oled.show()` aufrufen, um alles anzuzeigen
-
-```python
-# ❌ SCHLECHT: Flimmert, da jeder Befehl sofort angezeigt würde (alte Version)
-# ✅ GUT: Alles in Puffer schreiben, dann EINMAL anzeigen
+wert = 67
 oled.clear()
-oled.draw_rect(10, 10, 50, 30)
-oled.print("Text", 0, 0)
-oled.draw_circle(64, 32, 20)
-oled.show()  # Jetzt erst anzeigen - kein Flimmern!
+oled.progress_bar(0, 20, 120, 12, wert)
+oled.show()
 ```
 
-### Initialisierung
-
+Snippet 3: SH1106 mit anderer Adresse
 ```python
-OLED(scl=22, sda=21, chip='ssd1306', enabled=True, i2c_id=0, addr=0x3c, logo=True)
+oled = OLED(chip='sh1106', addr=0x3D)
 ```
 
-**Parameter:**
-- `scl` (int): SCL Pin-Nummer (Standard: 22)
-- `sda` (int): SDA Pin-Nummer (Standard: 21)
-- `chip` (str): Display-Typ - `'ssd1306'` oder `'sh1106'` (Standard: `'ssd1306'`)
-- `enabled` (bool): Display aktivieren/deaktivieren (Standard: `True`)
-- `i2c_id` (int): I2C Bus ID (Standard: 0)
-- `addr` (int): I2C Adresse des Displays (Standard: 0x3c)
-- `logo` (bool): Startlogo anzeigen (`True`) oder deaktivieren (`False`) (Standard: `True`)
+Praktische Hinweise/Fehlersuche:
+- Display bleibt leer: `show()` nach dem Zeichnen aufrufen.
+- Falscher Controller: `chip` auf `ssd1306`/`sh1106` pruefen.
+- I2C-Fehler: `addr` mit `i2c.scan()` verifizieren.
+- Unscharfe Ausgabe bei Umlaute: Sans-Font via `font='sans'` verwenden.
 
-Beispiel ohne Startlogo:
-
-```python
-from oled import OLED
-
-oled = OLED(scl=22, sda=21, chip='ssd1306', logo=False)
-```
-
-### Grafik-Methoden
-
-- `print(string, x=0, y=0, font='serif', scale=1, color=1)` - Text ausgeben
-- `pixel(x, y, color=1)` - Einzelnen Pixel setzen
-- `draw_rect(x1, y1, b, h, color=1)` - Rechteck-Umriss
-- `fill_rect(x1, y1, b, h, color=1)` - Gefülltes Rechteck
-- `draw_circle(x, y, r, color=1)` - Kreis-Umriss
-- `fill_circle(x, y, r, color=1)` - Gefüllter Kreis
-- `line(x1, y1, x2, y2, color=1)` - Beliebige Linie
-- `hline(x, y, w, color=1)` - Horizontale Linie
-- `vline(x, y, h, color=1)` - Vertikale Linie
-
-### Datenvisualisierungs-Methoden
-
-- `map(value, in_min, in_max, out_min, out_max)` - Sensordaten auf Pixel abbilden
-- `progress_bar(x, y, width, height, percent, color=1)` - Fortschrittsbalken
-- `draw_bar(x, y, width, height, value_percent, color=1)` - Balkendiagramm
-
-### Verwaltungs-Methoden
-
-- `clear()` - Display löschen (schwarzer Bildschirm wird sofort angezeigt)
-- `show()` - Puffer auf Display übertragen (zeigt alle zuvor gezeichneten Elemente an)
-
-## 🛠️ Fehlerbehebung
-
-### Problem: Display zeigt nichts an
-- **Lösung**: Überprüfen Sie die Verkabelung (SCL/SDA/GND/VCC)
-- Überprüfen Sie die I2C Adresse: `i2c.scan()` sollte Ihre Adresse anzeigen
-- Probieren Sie die Alternative Adresse `addr=0x3d`
-
-### Problem: Text ist unleserlich
-- **Lösung**: Verwenden Sie `font='sans'` für bessere Lesbarkeit auf kleinen Displays
-- Verwenden Sie `scale=2` zum Vergrößern
-
-### Problem: SH1106 wird nicht erkannt
-- **Lösung**: Verwenden Sie `chip='sh1106'` in der Initialisierung
-- Überprüfen Sie die I2C Adresse (oft 0x3c oder 0x3d)
-
-## 📝 Lizenz
-
-MIT License - Siehe `../LICENSE` Datei für Details.
-
----
-
-**Viel Spaß mit dem OLED Display Treiber! 🎉**
+## Lizenz
+MIT-Lizenz, siehe zentrale Datei `LICENSE` im Repository-Root.

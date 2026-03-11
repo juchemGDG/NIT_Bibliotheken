@@ -4,7 +4,7 @@ Zeigt: Grundlegende Text- und Linienausgabe auf OLED
 Hardware: 128x64 OLED (SSD1306 oder SH1106) per I2C
 """
 
-from oled import OLED
+from nitbw_oled import OLED
 import time
 
 

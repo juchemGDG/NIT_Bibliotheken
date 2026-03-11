@@ -1,8 +1,14 @@
 """
-BME280 Sensor Bibliothek für ESP32 und MicroPython
-Basiert auf dem Bosch BME280 Datenblatt
-Misst Temperatur, Luftdruck und Luftfeuchtigkeit
-Keine externen Bibliotheken erforderlich (nur machine für I2C)
+NIT Bibliothek: BME280 - Umweltmessung mit Temperatur, Luftdruck und Feuchte
+Fuer ESP32 mit MicroPython
+
+Version:    1.1.0
+Autor:      Stephan Juchem
+Lizenz:     MIT (siehe LICENSE)
+Erstellt:   2026-03
+
+Direkte Registeransteuerung nach Bosch-Datenblatt ohne Fremdbibliotheken.
+Unterstuetzt Messung, Kalibrierung und Betriebsmodi fuer stromsparende Anwendungen.
 """
 
 from machine import I2C
@@ -10,7 +16,15 @@ from time import sleep_ms
 import struct
 
 class BME280:
-    """BME280 Temperatur-, Luftdruck- und Feuchtigkeitssensor Klasse"""
+    """
+    Liest Temperatur, Luftdruck und Luftfeuchtigkeit vom BME280 aus.
+
+    Unterstuetzte Hardware:
+    - Bosch BME280 Sensor
+    - BME280-Breakout-Module mit Adresse 0x76 oder 0x77
+
+    Schnittstelle: I2C
+    """
     
     # BME280 Register Adressen
     REG_DIG_T1 = 0x88

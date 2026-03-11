@@ -1,26 +1,14 @@
 """
-OLED Display Klasse für ESP32 mit MicroPython
-Unterstützt SSD1306 und SH1106 Displays mit 128x64 Pixeln
-Beinhaltet vollständige Treiber-Implementierung ohne externe Abhängigkeiten
+NIT Bibliothek: OLED - Grafiktreiber fuer SSD1306 und SH1106 Displays
+Fuer ESP32 mit MicroPython
 
-MIT License
-Copyright (c) 2026 Stephan Juchem
+Version:    1.1.0
+Autor:      Stephan Juchem
+Lizenz:     MIT (siehe LICENSE)
+Erstellt:   2026-03
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-Die Datei wurde mit Hilfe von github Copilot am 8.3.2026 erstellt und von mir angepasst. 
-Es wurden keine externen Bibliotheken verwendet, sondern alle Funktionen selbst implementiert. 
-Das Logo wurde als Binärdaten direkt in den Code eingebettet, um die Abhängigkeit von 
-externen Dateien zu vermeiden. Alle Funktionen sind in der OLED-Klasse enthalten, 
-die sowohl SSD1306 als auch SH1106 Displays unterstützt.
+Umfangreiche Grafikfunktionen inkl. Text, Linien, Kreise und Balkenanzeigen.
+Treiber und Fontdaten sind direkt im Modul enthalten, ohne externe Abhaengigkeiten.
 """
 
 from machine import I2C, Pin
@@ -299,6 +287,16 @@ class SH1106(DisplayDriver):
             self.write_data(self.buffer[start:end])
 
 class OLED:
+    """
+    Stellt eine einfache API fuer Text- und Grafikdarstellung auf OLED bereit.
+
+    Unterstuetzte Hardware:
+    - SSD1306 OLED 128x64
+    - SH1106 OLED 128x64
+
+    Schnittstelle: I2C
+    """
+
     # INIT Logo als Binärdaten im MONO_VLSB Format (128x64 Pixel)
     # Zeigt "INIT" Text zentriert auf dem Display
     LOGO_PBM = (

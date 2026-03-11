@@ -1,7 +1,15 @@
+"""
+Beispiel fuer NIT Bibliothek: COMPASS
+Zeigt: Drehwinkelberechnung relativ zu einer Startrichtung
+Hardware: GY-261 (QMC5883L/HMC5883L) am I2C-Bus
+"""
+
 from machine import I2C, Pin
-from compass import Compass
+from nitbw_compass import Compass
 import time
 
+
+# --- Initialisierung ---
 # I2C initialisieren
 i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=400000)
 
@@ -11,6 +19,7 @@ compass = Compass(i2c, addr=0x0D)
 # Lokale Deklination setzen
 compass.set_declination(degrees=3, minutes=45)
 
+# --- Hauptprogramm ---
 print("Drehwinkelmessung - Drehe den Sensor!")
 print("=" * 50)
 print("Die Messung startet in 3 Sekunden...")

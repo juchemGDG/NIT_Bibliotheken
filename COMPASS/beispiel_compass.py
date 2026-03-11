@@ -1,5 +1,14 @@
+"""
+Beispiel fuer NIT Bibliothek: COMPASS
+Zeigt: Richtungs- und Magnetfeldmessung mit GY-261
+Hardware: GY-261 (QMC5883L/HMC5883L) am I2C-Bus
+"""
+
 from machine import I2C, Pin
-from compass import Compass
+from nitbw_compass import Compass
+
+
+# --- Initialisierung ---
 
 # I2C initialisieren
 # Standard für QMC5883L: SCL=22, SDA=21
@@ -11,6 +20,7 @@ compass = Compass(i2c, addr=0x0D)
 # Lokale Deklination setzen (z.B. 3° 45' für Mitteleuropa)
 compass.set_declination(degrees=3, minutes=45)
 
+# --- Hauptprogramm ---
 # Kompassrichtung auslesen
 heading = compass.read_heading()
 print(f"Kompassrichtung: {heading:.1f}°")

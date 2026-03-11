@@ -27,7 +27,7 @@ import time
 # Fuer LCD-Display folgende Zeile verwenden:
 from nitbw_lcd import LCD
 # Fuer OLED-Display stattdessen diese Zeile verwenden:
-# from oled import OLED
+# from nitbw_oled import OLED
 
 
 # --- Konfiguration ---
