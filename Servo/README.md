@@ -210,6 +210,35 @@ servo = Servo(pin=13, puls_min_us=600, puls_max_us=2400)
 servo.winkel(90)
 ```
 
+4. Erweiterter Winkelbereich (0-270°):
+```python
+from nitbw_servo import Servo
+
+# Spezialservo mit 270° Bereich
+servo = Servo(pin=13, winkel_min=0, winkel_max=270,
+              puls_min_us=500, puls_max_us=2500)
+servo.winkel(135)  # Mittelposition bei 270°-Servo
+```
+
+5. Pulsbreite direkt setzen (Feinabstimmung):
+```python
+from nitbw_servo import Servo
+
+servo = Servo(pin=13)
+# Feinabstimmung: Pulsbreite manuell in Mikrosekunden
+servo.puls(1500)  # Entspricht ca. 90°
+servo.puls(750)   # Feiner Zwischenwert
+```
+
+6. Continuous-Servo Stillstandspunkt kalibrieren:
+```python
+from nitbw_servo import ContinuousServo
+
+# Falls stopp() nicht ganz still steht: Mitte anpassen
+motor = ContinuousServo(pin=14, puls_mitte_us=1480)
+motor.stopp()  # Sollte jetzt exakt stillstehen
+```
+
 ### Fehlersuche
 
 - **Servo zittert oder brummt**: Stromversorgung pruefen. USB-Strom reicht fuer

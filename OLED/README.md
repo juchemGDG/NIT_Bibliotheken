@@ -102,6 +102,41 @@ Snippet 3: SH1106 mit anderer Adresse
 oled = OLED(chip='sh1106', addr=0x3D)
 ```
 
+Snippet 4: Sans-Font mit Umlauten und Skalierung
+```python
+oled.clear()
+oled.print("Größe Übung Öl", 0, 0, font='sans')
+oled.print("Doppelt", 0, 16, font='sans', scale=2)
+oled.show()
+```
+
+Snippet 5: Kreise und Rechtecke kombinieren
+```python
+oled.clear()
+oled.draw_rect(0, 0, 60, 40)
+oled.fill_circle(30, 20, 12)
+oled.draw_circle(90, 32, 25)
+oled.show()
+```
+
+Snippet 6: Balkendiagramm fuer Sensordaten
+```python
+oled.clear()
+oled.print("Sensor", 0, 0)
+prozent = 72
+oled.progress_bar(10, 20, 108, 12, prozent)
+oled.print(f"{prozent}%", 50, 40, font='sans')
+oled.show()
+```
+
+Snippet 7: Wert abbilden mit map()
+```python
+adc_wert = 2048
+pixel_x = oled.map(adc_wert, 0, 4095, 0, 127)
+oled.pixel(pixel_x, 32)
+oled.show()
+```
+
 Praktische Hinweise/Fehlersuche:
 - Display bleibt leer: `show()` nach dem Zeichnen aufrufen.
 - Falscher Controller: `chip` auf `ssd1306`/`sh1106` pruefen.

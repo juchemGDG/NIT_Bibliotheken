@@ -1,0 +1,155 @@
+Vorlage fuer neue NIT-Bibliotheken
+Stand: 2026-03
+
+Dieses Dokument beschreibt, wie eine neue Bibliothek angelegt wird,
+damit sie zum bestehenden Corporate Design der NIT-Sammlung passt.
+
+================================================================
+1) Namensregeln
+================================================================
+
+1.1 Bibliotheksdatei
+    Muster:   nitbw_<name>.py
+    Beispiel: nitbw_ultraschall.py
+
+1.2 Beispieldateien
+    Muster:   beispiel_<thema>.py
+    Beispiel: beispiel_ultraschall.py
+              beispiel_ultraschall_mehrfach.py
+
+1.3 Ordnername
+    Grossbuchstaben, identisch mit dem Thema.
+    Beispiel: ULTRASCHALL/
+
+1.4 Variablennamen
+    Duerfen Englisch bleiben (Python-Konvention).
+
+================================================================
+2) Modul-Header
+================================================================
+
+Jede Bibliotheksdatei beginnt mit exakt diesem Block:
+
+"""
+NIT Bibliothek: <Name> - <Kurzbeschreibung>
+Fuer ESP32 mit MicroPython
+
+Version:    1.0.0
+Autor:      <Vorname Nachname> / nitbw
+Lizenz:     MIT (siehe LICENSE)
+Erstellt:   <YYYY-MM>
+
+<1-2 Saetze: technische Kernidee, z. B. Registeransteuerung,
+ verwendete Schnittstelle, Besonderheiten>
+"""
+
+Hinweise:
+- Version beim Erstellen immer 1.0.0. Hochzaehlen nach Aenderungen.
+- Keine __version__-Variable im Code.
+- Datum: nur Jahr und Monat (z. B. 2026-03).
+- Lizenzzeile immer woertlich: MIT (siehe LICENSE)
+
+================================================================
+3) Klassen-Docstring
+================================================================
+
+class <Klasse>:
+    """
+    <1 Satz: Was macht die Klasse?>
+
+    Unterstuetzte Hardware:
+    - <Komponente 1>
+    - <Komponente 2>
+
+    Schnittstelle: <I2C/SPI/PWM/...>
+    """
+
+================================================================
+4) Sprache und Stil
+================================================================
+
+- Docstrings: Deutsch
+- Kommentare: Deutsch
+- Beispieltexte / print-Ausgaben: Deutsch
+- Technische Bezeichner (Variablen, Funktionen): duerfen Englisch bleiben
+
+================================================================
+5) Beispieldateien
+================================================================
+
+Jede Beispieldatei beginnt mit diesem Header:
+
+"""
+Beispiel fuer NIT Bibliothek: <Name>
+Zeigt: <Anwendungsziel>
+Hardware: <benoetigte Hardware>
+"""
+
+Grundaufbau im Code:
+    - Imports
+    - Abschnitt "--- Initialisierung ---"
+    - Abschnitt "--- Hauptprogramm ---"
+
+Mindestens ein Grundbeispiel sollte vorhanden sein.
+Weitere Beispiele fuer erweiterte Funktionen sind willkommen.
+
+================================================================
+6) README-Struktur
+================================================================
+
+Jede Bibliothek bekommt eine README.md mit exakt diesen Abschnitten
+in dieser Reihenfolge:
+
+    1. Beschreibung    (2-4 Saetze)
+    2. Features        (8+ Punkte, gerne gruppiert)
+    3. Hardware        (Varianten, Adressen, Pins, Besonderheiten)
+    4. Anschluss       (Verkabelungsbeispiel fuer ESP32)
+    5. Installation    (Datei kopieren, Import-Zeile)
+    6. Schnellstart    (Vollstaendiger, lauffaehiger Codeblock)
+    7. API-Referenz    (Konstruktor-Tabelle + Methodenuebersicht)
+    8. Beispiele       (Dateiverweise + 3-6 Code-Snippets fuer
+                        besondere Funktionen)
+    9. Lizenz          (Kurzhinweis auf MIT + LICENSE-Datei)
+
+Empfohlene Mindesttiefe:
+- API: Konstruktor mit allen Parametern + alle oeffentlichen Methoden
+- Beispiele: mindestens 3 verschiedene Anwendungsfaelle
+- Fehlersuche / Hinweise: typische Stolperfallen auflisten
+
+================================================================
+7) Lizenz
+================================================================
+
+- Im Modul-Header steht nur: Lizenz: MIT (siehe LICENSE)
+- Jedes Bibliotheksverzeichnis enthaelt eine eigene LICENSE-Datei
+  (identisch mit der Root-LICENSE). So ist der Lizenztext auch bei
+  Einzeldownload einer Bibliothek vorhanden.
+- In der README genuegt ein Kurzverweis:
+  "MIT-Lizenz, siehe zentrale Datei LICENSE im Repository-Root."
+
+================================================================
+8) Checkliste fuer eine neue Bibliothek
+================================================================
+
+[ ] Ordner angelegt (Grossbuchstaben)
+[ ] nitbw_<name>.py mit Modul-Header und Klassen-Docstring
+[ ] Mindestens eine beispiel_<thema>.py
+[ ] README.md nach Abschnitt 6 angelegt
+[ ] LICENSE-Datei in den Ordner kopiert
+[ ] Root-README.md: neue Zeile in der Bibliothekstabelle ergaenzt
+
+================================================================
+9) Bestehende Autoren (Referenz)
+================================================================
+
+- LCD:     Volker Rust / nitbw
+- Servo:   Volker Rust / nitbw
+- RTC:     Volker Rust / nitbw
+- BME280:  Stephan Juchem / nitbw
+- COMPASS: Stephan Juchem / nitbw
+- MLEARN:  Stephan Juchem / nitbw
+- OLED:    Stephan Juchem / nitbw
+
+Neue Bibliotheken: Autor ist die Person, die die Bibliothek erstellt.
+
+Ende der Vorlage

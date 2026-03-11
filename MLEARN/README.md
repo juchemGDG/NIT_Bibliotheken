@@ -91,6 +91,30 @@ Snippet 3: CSV mit anderem Separator
 model.load_csv('messwerte.csv', separator=';', target=2)
 ```
 
+Snippet 4: Decision Tree Struktur ausgeben
+```python
+model = MLearn()
+model.load_csv('data.csv', target=0)
+model.train_tree(max_depth=3)
+model.print_tree()  # Zeigt Entscheidungsregeln im Terminal
+pred = model.predict_tree([5.0, 3.0, 1.5, 0.3])
+print(f"Baumvorhersage: {pred}")
+```
+
+Snippet 5: Feature-Skalierung manuell nutzen
+```python
+# Nach train_knn() stehen min/max bereit
+model.train_knn()
+skaliert = model.scale_features([5.1, 3.5, 1.4, 0.2])
+print(f"Skalierte Features: {skaliert}")
+```
+
+Snippet 6: Euklidische Distanz zwischen zwei Datenpunkten
+```python
+dist = model.euclidean_distance([1.0, 2.0], [4.0, 6.0])
+print(f"Distanz: {dist:.2f}")
+```
+
 Praktische Hinweise/Fehlersuche:
 - `Keine Trainingsdaten vorhanden.`: CSV-Pfad/Format pruefen.
 - Schlechte Ergebnisse: Features vorab skalieren bzw. Datenqualitaet pruefen.

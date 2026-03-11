@@ -2,8 +2,8 @@
 NIT Bibliothek: RTC - Echtzeituhr (Real Time Clock)
 Fuer ESP32 mit MicroPython
 
-Version:    1.0.2
-Autor:      Volker Rust
+Version:    1.1.0
+Autor:      Volker Rust / nitbw
 Lizenz:     MIT (siehe LICENSE)
 Erstellt:   2026-03
 

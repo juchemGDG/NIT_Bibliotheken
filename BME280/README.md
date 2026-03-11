@@ -97,6 +97,33 @@ sensor.sleep()
 temp, druck, feuchte = sensor.forced_measurement()
 ```
 
+Snippet 4: Taupunkt berechnen
+```python
+temp, _, feuchte = sensor.read_all()
+taupunkt = sensor.calculate_dew_point(temp, feuchte)
+print(f"Taupunkt: {taupunkt:.1f} C")
+```
+
+Snippet 5: Hitzeindex bei hoher Luftfeuchtigkeit
+```python
+temp, _, feuchte = sensor.read_all()
+hitze = sensor.calculate_heat_index(temp, feuchte)
+print(f"Gefuehlte Temperatur: {hitze:.1f} C")
+```
+
+Snippet 6: Oversampling und Filter konfigurieren
+```python
+from nitbw_bme280 import BME280
+sensor.configure(
+    mode=BME280.MODE_NORMAL,
+    osrs_t=BME280.OVERSAMPLE_X4,
+    osrs_p=BME280.OVERSAMPLE_X16,
+    osrs_h=BME280.OVERSAMPLE_X4,
+    filter_coef=BME280.FILTER_4,
+    standby=BME280.STANDBY_250
+)
+```
+
 Praktische Hinweise/Fehlersuche:
 - Leere I2C-Scans: Verkabelung, Versorgung und Pull-ups pruefen.
 - Falsche Werte direkt nach Start: 1-2 Messzyklen verwerfen.

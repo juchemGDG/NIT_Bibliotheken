@@ -3,7 +3,7 @@ NIT Bibliothek: BME280 - Umweltmessung mit Temperatur, Luftdruck und Feuchte
 Fuer ESP32 mit MicroPython
 
 Version:    1.1.0
-Autor:      Stephan Juchem
+Autor:      Stephan Juchem / nitbw
 Lizenz:     MIT (siehe LICENSE)
 Erstellt:   2026-03
 

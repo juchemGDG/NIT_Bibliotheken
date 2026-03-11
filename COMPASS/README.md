@@ -107,6 +107,29 @@ print("Sensor langsam in alle Richtungen drehen...")
 compass.auto_calibrate(samples=200)
 ```
 
+Snippet 4: Gesamtfeldstaerke messen
+```python
+strength = compass.read_strength()
+print(f"Gesamtfeldstaerke: {strength:.2f} mG")
+```
+
+Snippet 5: Manuelle Bias-Kalibrierung mit bekannten Werten
+```python
+# Offsets aus vorheriger Kalibrierung eintragen
+compass.calibrate_with_bias(x_bias=-120, y_bias=85, z_bias=0)
+```
+
+Snippet 6: Drehwinkel zwischen zwei Richtungen berechnen
+```python
+start = compass.read_heading()
+import time
+time.sleep(2)
+aktuell = compass.read_heading()
+rotation = compass.calculate_rotation(start, aktuell)
+print(f"Drehung: {rotation:.1f} Grad")
+print(f"Richtung: {compass.get_rotation_direction(start, aktuell)}")
+```
+
 Praktische Hinweise/Fehlersuche:
 - Sprunghafte Richtungen: Kalibrierung wiederholen und Stoerquellen entfernen.
 - Nur `0x1E` gefunden: `addr=0x1E` setzen.

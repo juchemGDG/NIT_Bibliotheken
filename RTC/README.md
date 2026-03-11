@@ -113,8 +113,8 @@ Parameterueberblick:
 | `monat()` | Aktueller Monat (1-12) |
 | `jahr()` | Aktuelles Jahr (z.B. 2026) |
 | `wochentag()` | Wochentag als Zahl (1=Mo, 7=So) |
-| `wochentagName()` | Englischer Kurzname (Mon-Sun) |
-| `monatsName()` | Englischer Kurzname (Jan-Dec) |
+| `wochentagName()` | Deutscher Kurzname (Mo-So) |
+| `monatsName()` | Deutscher Kurzname (Jan-Dez) |
 | `toString(fmt)` | Formatierter Datums-/Zeitstring |
 | `set(...)` | RTC auf bestimmte Werte stellen |
 | `setVonString(zeitstring)` | RTC aus String stellen (YYYY-MM-DD hh:mm:ss) |
@@ -158,14 +158,15 @@ Parameterueberblick:
 | `YYYY` | Jahr vierstellig | `2026` |
 | `YY` | Jahr zweistellig | `26` |
 | `MM` | Monat mit fuehrender Null | `03`, `12` |
-| `MMM` | Englischer Monatsname | `Mar`, `Dec` |
+| `MMM` | Deutscher Monatsname | `Mar`, `Dez` |
 | `DD` | Tag mit fuehrender Null | `01`, `31` |
-| `DDD` | Englischer Tagesname | `Mon`, `Sun` |
+| `DDD` | Deutscher Tagesname | `Mo`, `So` |
 
 ## Beispiele
 
 - `beispiel_rtc.py`: Einfache Ausgabe von Datum und Uhrzeit im Seriellen Monitor
 - `beispiel_rtc_stellen.py`: Uhr ueber die serielle Schnittstelle stellen
+- `beispiel_rtc_stellen_mit_tastern.py`: Uhr interaktiv stellen mit 3 Tastern und Display
 - `beispiel_rtc_komplett.py`: Alle Funktionen im Ueberblick (Formatierung, Einzelwerte, Temperatur, Alarm)
 
 ### Zusatzbeispiele
@@ -205,6 +206,46 @@ lcd = LCD(scl=22, sda=21, addr=0x27)
 # GPIO 4 = Stell-Taster, GPIO 12/13/14 = Hoch/Runter/Enter
 rtc.pruefeStellPin(pin_nr=4, display=lcd,
                    pin_hoch=12, pin_runter=13, pin_enter=14)
+```
+
+4. Schaltjahr und Tage im Monat pruefen:
+```python
+from nitbw_rtc import RTC
+
+rtc = RTC(chip='DS3231', scl=22, sda=21)
+print("Schaltjahr:", rtc.istSchaltjahr())
+print("Tage im Feb 2024:", rtc.tageImMonat(2, 2024))
+```
+
+5. Unix-Zeit und Zeit-Tuple abfragen:
+```python
+from nitbw_rtc import RTC
+
+rtc = RTC(chip='DS3231', scl=22, sda=21)
+print("Sekunden seit 2000:", rtc.unixZeit())
+print("Zeit-Tuple:", rtc.zeitTuple())
+```
+
+6. Oszillator pruefen und starten (DS1307):
+```python
+from nitbw_rtc import RTC
+
+rtc = RTC(chip='DS1307', scl=22, sda=21)
+if not rtc.laueft():
+    print("Oszillator steht - wird gestartet")
+    rtc.start()
+```
+
+7. DS3231 Alarme verwenden:
+```python
+from nitbw_rtc import RTC
+
+rtc = RTC(chip='DS3231', scl=22, sda=21)
+rtc.alarm1(stunden=14, minuten=30, sekunden=0)
+print("Alarm auf 14:30 gesetzt")
+a1, a2 = rtc.alarmStatus()
+print("Alarm 1 aktiv:", a1)
+rtc.alarmLoeschen()
 ```
 
 ### Fehlersuche

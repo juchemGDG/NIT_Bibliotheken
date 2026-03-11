@@ -42,7 +42,7 @@ rtc = RTC(chip='DS3231', scl=22, sda=21)
 
 # --- Initialisierung Display ---
 # LCD 20x4 (I2C-Adresse wird automatisch erkannt)
-display = LCD(cols=20, rows=4, scl=22, sda=21)
+display = LCD(scl=22, sda=21, zeilen=4, spalten=20)
 
 # Fuer OLED stattdessen:
 # display = OLED(scl=22, sda=21)

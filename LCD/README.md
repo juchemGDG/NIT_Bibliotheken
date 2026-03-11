@@ -168,6 +168,40 @@ for p in range(0, 101, 5):
     time.sleep(0.1)
 ```
 
+4. Eigenes Zeichen definieren und anzeigen:
+```python
+from nitbw_lcd import LCD
+
+lcd = LCD(scl=22, sda=21, addr=0x27)
+# Thermometer-Symbol auf CGRAM-Platz 7 laden
+thermo = [0b00100, 0b01010, 0b01010, 0b01010,
+          0b01010, 0b11111, 0b11111, 0b01110]
+lcd.eigenes_zeichen(7, thermo)
+lcd.zeichen_schreiben(7, 0, 0)  # Zeichen an Position (0,0) ausgeben
+```
+
+5. Wertebereich umrechnen mit map():
+```python
+from nitbw_lcd import LCD
+
+lcd = LCD(scl=22, sda=21, addr=0x27)
+adc_wert = 2048
+spalte = lcd.map(adc_wert, 0, 4095, 0, 19)
+prozent = lcd.map(adc_wert, 0, 4095, 0, 100)
+lcd.print(f"Spalte:{spalte} %:{prozent}", 0, 0)
+```
+
+6. Mehrere Balken mit draw_bar():
+```python
+from nitbw_lcd import LCD
+
+lcd = LCD(scl=22, sda=21, addr=0x27)
+lcd.print("T", 0, 2)
+lcd.draw_bar(2, 0, 9, 65)   # Temperatur-Balken
+lcd.print("F", 10, 2)
+lcd.draw_bar(2, 10, 9, 80)  # Feuchte-Balken
+```
+
 ## Lizenz
 
 MIT Lizenz. Der Modul-Header enthaelt nur die Kurzangabe:
