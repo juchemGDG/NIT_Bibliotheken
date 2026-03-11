@@ -15,6 +15,8 @@ Konsolidierte Bibliothekssammlung fuer den NIT-Unterricht mit einheitlichem Name
 | MLEARN | `MLEARN/nitbw_mlearn.py` | `MLEARN/beispiel_mlearn.py` | 1.1.0 |
 | RTC | `RTC/nitbw_rtc.py` | `RTC/beispiel_rtc.py`, `RTC/beispiel_rtc_komplett.py` | 1.1.0 |
 | Servo | `Servo/nitbw_servo.py` | `Servo/beispiel_servo.py`, `Servo/beispiel_servo_continuous.py` | 1.1.0 |
+| Ultraschall | `ULTRASCHALL/nitbw_ultraschall.py` | `ULTRASCHALL/beispiel_ultraschall.py`, `ULTRASCHALL/beispiel_ultraschall_einparkhilfe.py` | 1.0.0 |
+| TOF | `TOF/nitbw_tof.py` | `TOF/beispiel_tof.py`, `TOF/beispiel_tof_modi.py` | 1.0.0 |
 
 ## Schnellstart-Muster
 
@@ -51,6 +53,8 @@ print(sensor.read_all())
 - `MLEARN/README.md`
 - `RTC/README.md`
 - `Servo/README.md`
+- `ULTRASCHALL/README.md`
+- `TOF/README.md`
 
 ## Lizenz
 

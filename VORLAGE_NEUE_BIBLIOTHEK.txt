@@ -149,6 +149,8 @@ Empfohlene Mindesttiefe:
 - COMPASS: Stephan Juchem / nitbw
 - MLEARN:  Stephan Juchem / nitbw
 - OLED:    Stephan Juchem / nitbw
+- ULTRASCHALL: Volker Rust / nitbw
+- TOF:     Volker Rust / nitbw
 
 Neue Bibliotheken: Autor ist die Person, die die Bibliothek erstellt.
 
