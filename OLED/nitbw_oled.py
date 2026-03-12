@@ -424,6 +424,7 @@ class OLED:
         self.display.show()
         time.sleep(2)
         self.clear()
+        self.show()
     
     def _draw_glyph(self, glyph, x, y, scale=1, color=1):
         """Zeichnet eine Bitmap-Glyphe auf den Display-Buffer."""
@@ -671,12 +672,11 @@ class OLED:
         self.display.vline(x, y, h, color)
     
     def clear(self):
-        """Löscht das Display"""
+        """Löscht den Puffer (Framebuffer). Mit show() auf das Display übertragen."""
         if not self.enabled:
             return
         
         self.display.fill(0)
-        self.display.show()
     
     def show(self):
         """Aktualisiert das Display (für manuelle Buffer-Verwaltung)"""

@@ -19,3 +19,4 @@ oled.show()
 
 # Display loeschen
 oled.clear()
+oled.show()

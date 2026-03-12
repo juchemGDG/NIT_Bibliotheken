@@ -66,7 +66,8 @@ Konstruktor: `OLED(scl=22, sda=21, chip='ssd1306', enabled=True, i2c_id=0, addr=
 
 Wichtige Methoden:
 - `print(string, x=0, y=0, font='serif', scale=1, color=1)`
-- `clear()` / `show()`
+- `clear()` – löscht nur den Puffer, ohne das Display zu aktualisieren
+- `show()` – überträgt den Puffer auf das Display
 - `pixel(x, y, color=1)`
 - `line(x1, y1, x2, y2, color=1)`
 - `hline(x, y, w, color=1)` / `vline(x, y, h, color=1)`
@@ -139,6 +140,7 @@ oled.show()
 
 Praktische Hinweise/Fehlersuche:
 - Display bleibt leer: `show()` nach dem Zeichnen aufrufen.
+- Nach `clear()` muss ebenfalls `show()` aufgerufen werden, damit das Display sichtbar geleert wird.
 - Falscher Controller: `chip` auf `ssd1306`/`sh1106` pruefen.
 - I2C-Fehler: `addr` mit `i2c.scan()` verifizieren.
 - Unscharfe Ausgabe bei Umlaute: Sans-Font via `font='sans'` verwenden.

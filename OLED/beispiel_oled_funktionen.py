@@ -102,7 +102,8 @@ oled.print("alles geloescht...", 0, 24, font='sans')
 oled.show()
 time.sleep(2)
 
-oled.clear()  # Löscht das gesamte Display
+oled.clear()  # Puffer löschen
+oled.show()   # Leeres Display anzeigen
 time.sleep(1)
 
 oled.print("...und neu!", 0, 28, font='sans')
