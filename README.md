@@ -13,6 +13,8 @@ Konsolidierte Bibliothekssammlung fuer den NIT-Unterricht mit einheitlichem Name
 | BME280 | `BME280/nitbw_bme280.py` | `BME280/beispiel_bme280.py` | 1.1.0 |
 | COMPASS | `COMPASS/nitbw_compass.py` | `COMPASS/beispiel_compass.py`, `COMPASS/beispiel_compass_rotation.py` | 1.1.0 |
 | MLEARN | `MLEARN/nitbw_mlearn.py` | `MLEARN/beispiel_mlearn.py` | 1.1.0 |
+| MLEARN2 | `MLEARN2/nitbw_mlearn.py` | `MLEARN2/beispiel_mlearn.py`, `MLEARN2/beispiel_mlearn_komplett.py` | 2.1.0 |
+| AS7262 | `AS7262/nitbw_as7262.py` | `AS7262/beispiel_as7262.py`, `AS7262/beispiel_as7262_kalibriert.py` | 1.0.0 |
 | RTC | `RTC/nitbw_rtc.py` | `RTC/beispiel_rtc.py`, `RTC/beispiel_rtc_komplett.py` | 1.1.0 |
 | Servo | `Servo/nitbw_servo.py` | `Servo/beispiel_servo.py`, `Servo/beispiel_servo_continuous.py` | 1.1.0 |
 | Ultraschall | `ULTRASCHALL/nitbw_ultraschall.py` | `ULTRASCHALL/beispiel_ultraschall.py`, `ULTRASCHALL/beispiel_ultraschall_einparkhilfe.py` | 1.0.0 |
@@ -53,6 +55,31 @@ sensor.set_frequenzskalierung(2)
 print(sensor.dominante_farbe())
 ```
 
+```python
+# Beispiel AS7262
+from nitbw_as7262 import AS7262
+sensor = AS7262(sda=21, scl=22, led=True)
+print(sensor.messen_roh())
+```
+
+```python
+# Beispiel MLEARN
+from nitbw_mlearn import MLearn
+model = MLearn(k=3)
+model.load_csv('iris.csv', separator=',', target=0)
+model.train_knn()
+print(model.predict_knn([5.1, 3.5, 1.4, 0.2]))
+```
+
+```python
+# Beispiel MLEARN2 mit AS7262
+from nitbw_mlearn import MLearn
+model = MLearn(k=3)
+model.load_csv('farben.csv', target=6)
+model.train_forest(n_trees=5, max_depth=3)
+print(model.predict_forest([52, 70, 151, 214, 210, 140]))
+```
+
 ## Dokumentation je Bibliothek
 
 - `LCD/README.md`
@@ -60,11 +87,13 @@ print(sensor.dominante_farbe())
 - `BME280/README.md`
 - `COMPASS/README.md`
 - `MLEARN/README.md`
+- `MLEARN2/README.md`
 - `RTC/README.md`
 - `Servo/README.md`
 - `ULTRASCHALL/README.md`
 - `TOF/README.md`
 - `TCS3200/README.md`
+- `AS7262/README.md`
 
 ## Lizenz
 
