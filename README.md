@@ -20,6 +20,7 @@ Konsolidierte Bibliothekssammlung fuer den NIT-Unterricht mit einheitlichem Name
 | Ultraschall | `ULTRASCHALL/nitbw_ultraschall.py` | `ULTRASCHALL/beispiel_ultraschall.py`, `ULTRASCHALL/beispiel_ultraschall_einparkhilfe.py` | 1.0.0 |
 | TOF | `TOF/nitbw_tof.py` | `TOF/beispiel_tof.py`, `TOF/beispiel_tof_modi.py` | 1.0.0 |
 | TCS3200 | `TCS3200/nitbw_tcs3200.py` | `TCS3200/beispiel_tcs3200.py`, `TCS3200/beispiel_tcs3200_rgb.py` | 1.0.0 |
+| REGLER | `REGLER/nitbw_regler.py` | `REGLER/beispiel_regler_zweipunkt.py`, `REGLER/beispiel_regler_pid.py` | 1.0.0 |
 
 ## Schnellstart-Muster
 
@@ -94,6 +95,7 @@ print(model.predict_forest([52, 70, 151, 214, 210, 140]))
 - `TOF/README.md`
 - `TCS3200/README.md`
 - `AS7262/README.md`
+- `REGLER/README.md`
 
 ## Lizenz
 
