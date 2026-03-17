@@ -9,7 +9,7 @@ Konsolidierte Bibliothekssammlung fuer den NIT-Unterricht mit einheitlichem Name
 | Bibliothek | Moduldatei | Beispiele (Auswahl) | Version |
 |---|---|---|---|
 | LCD | `LCD/nitbw_lcd.py` | `LCD/beispiel_lcd.py`, `LCD/beispiel_lcd_funktionen.py` | 1.1.0 |
-| OLED | `OLED/nitbw_oled.py` | `OLED/beispiel_oled_schnellstart.py`, `OLED/beispiel_oled.py` | 1.1.0 |
+| OLED | `OLED/nitbw_oled.py` | `OLED/beispiel_oled_schnellstart.py`, `OLED/beispiel_oled.py` | 1.2.0 |
 | BME280 | `BME280/nitbw_bme280.py` | `BME280/beispiel_bme280.py` | 1.1.0 |
 | COMPASS | `COMPASS/nitbw_compass.py` | `COMPASS/beispiel_compass.py`, `COMPASS/beispiel_compass_rotation.py` | 1.1.0 |
 | MLEARN | `MLEARN/nitbw_mlearn.py` | `MLEARN/beispiel_mlearn.py` | 1.1.0 |
@@ -33,7 +33,7 @@ lcd.print('Hallo NIT', 0, 0)
 ```python
 # Beispiel OLED
 from nitbw_oled import OLED
-oled = OLED(scl=22, sda=21, chip='ssd1306')
+oled = OLED(scl=22, sda=21, chip='ssd1306', width=128, height=64)
 oled.print('Hello', 0, 0)
 oled.show()
 ```

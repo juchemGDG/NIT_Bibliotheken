@@ -11,6 +11,8 @@ from nitbw_oled import OLED
 
 # Display initialisieren (SSD1306)
 oled = OLED(scl=22, sda=21, chip='ssd1306')
+# Fuer 128x32 stattdessen:
+# oled = OLED(scl=22, sda=21, chip='ssd1306', width=128, height=32, logo=False)
 
 # --- Hauptprogramm ---
 # Text ausgeben und anzeigen
