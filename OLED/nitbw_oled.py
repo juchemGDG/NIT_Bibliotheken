@@ -2,8 +2,8 @@
 NIT Bibliothek: OLED - Grafiktreiber fuer SSD1306 und SH1106 Displays
 Fuer ESP32 mit MicroPython
 
-Version:    1.1.0
-Autor:      Stephan Juchem / nitbw
+Version:    1.2.0
+Autor:      Stephan Juchem, Volker Rust / nitbw
 Lizenz:     MIT (siehe LICENSE)
 Erstellt:   2026-03
 
@@ -292,8 +292,8 @@ class OLED:
     Stellt eine einfache API fuer Text- und Grafikdarstellung auf OLED bereit.
 
     Unterstuetzte Hardware:
-    - SSD1306 OLED 128x64
-    - SH1106 OLED 128x64
+    - SSD1306 OLED 128x64 und 128x32
+    - SH1106 OLED 128x64 und 128x32
 
     Schnittstelle: I2C
     """
@@ -367,7 +367,7 @@ class OLED:
         b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
     )
     
-    def __init__(self, scl=22, sda=21, chip='ssd1306', enabled=True, i2c_id=0, addr=0x3c, logo=True):
+    def __init__(self, scl=22, sda=21, chip='ssd1306', enabled=True, i2c_id=0, addr=0x3c, logo=True, width=128, height=64):
         """
         Initialisiert das OLED Display
         
@@ -379,12 +379,17 @@ class OLED:
             i2c_id: I2C Bus ID (Standard: 0)
             addr: I2C Adresse des Displays (Standard: 0x3c)
             logo: True zeigt das Startlogo, False deaktiviert es (Standard: True)
+            width: Displaybreite in Pixeln (Standard: 128)
+            height: Displayhoehe in Pixeln (Standard: 64)
         """
-        self.width = 128
-        self.height = 64
+        self.width = int(width)
+        self.height = int(height)
         self.enabled = enabled
         self.chip = chip.lower()
         self.logo = bool(logo)
+
+        if (self.width, self.height) not in ((128, 64), (128, 32)):
+            raise ValueError('Unterstuetzte Aufloesungen: 128x64 oder 128x32')
         
         if not self.enabled:
             self.display = None
