@@ -1,5 +1,5 @@
 Vorlage fuer neue NIT-Bibliotheken
-Stand: 2026-03
+Stand: 2026-03.1
 
 Dieses Dokument beschreibt, wie eine neue Bibliothek angelegt wird,
 damit sie zum bestehenden Corporate Design der NIT-Sammlung passt.

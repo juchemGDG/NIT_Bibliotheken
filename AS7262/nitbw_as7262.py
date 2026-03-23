@@ -2,7 +2,7 @@
 NIT Bibliothek: AS7262 - 6-Kanal Spektralsensor ueber I2C
 Fuer ESP32 mit MicroPython
 
-Version:    1.0.0
+Version:    1.1.0
 Autor:      Volker Rust / nitbw
 Lizenz:     MIT (siehe LICENSE)
 Erstellt:   2026-03
