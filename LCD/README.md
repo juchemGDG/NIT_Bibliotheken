@@ -53,9 +53,11 @@ importiert werden.
 ## Schnellstart
 
 ```python
+from machine import I2C, Pin
 from nitbw_lcd import LCD
 
-lcd = LCD(scl=22, sda=21, addr=0x27)
+i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=400000)
+lcd = LCD(i2c, addr=0x27)
 lcd.print("Temperatur: 23.5 C", 0, 0)
 lcd.print("Gruesse aus Tuebingen", 0, 1)
 lcd.print("Wir ♥ Python!", 0, 2)
@@ -70,19 +72,17 @@ Hinweis:
 
 Konstruktor:
 
-- `LCD(scl=22, sda=21, addr=0x27, zeilen=4, spalten=20, enabled=True, i2c_id=0, begruessung=True)`
+- `LCD(i2c, addr=0x27, zeilen=4, spalten=20, enabled=True, begruessung=True)`
 
 Parameterueberblick:
 
 | Parameter | Typ | Standard | Beschreibung |
 |---|---|---|---|
-| `scl` | int | 22 | GPIO-Pin fuer SCL |
-| `sda` | int | 21 | GPIO-Pin fuer SDA |
+| `i2c` | I2C | - | Initialisiertes I2C-Bus-Objekt |
 | `addr` | int | `0x27` | I2C-Adresse des Adapters |
 | `zeilen` | int | 4 | Displayzeilen (2 oder 4) |
 | `spalten` | int | 20 | Displayspalten (16 oder 20) |
 | `enabled` | bool | `True` | Ausgabe aktivieren/deaktivieren |
-| `i2c_id` | int | 0 | I2C-Bus-ID |
 | `begruessung` | bool | `True` | Startbegruessung anzeigen |
 
 Wichtige Methoden:
@@ -132,9 +132,11 @@ Zusatzbeispiele fuer typische Einsaetze:
 
 1. Anzeige mit Umlauten und Sonderzeichen:
 ```python
+from machine import I2C, Pin
 from nitbw_lcd import LCD
 
-lcd = LCD(scl=22, sda=21, addr=0x27)
+i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=400000)
+lcd = LCD(i2c, addr=0x27)
 lcd.print("23.5 C  Groesse", 0, 0)
 lcd.print("Wir ♥ MicroPython", 0, 1)
 ```
@@ -144,7 +146,8 @@ lcd.print("Wir ♥ MicroPython", 0, 1)
 from nitbw_lcd import LCD
 import time
 
-lcd = LCD(scl=22, sda=21, addr=0x27)
+i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=400000)
+lcd = LCD(i2c, addr=0x27)
 lcd.cursor(True)
 time.sleep(1)
 lcd.cursor(False)
@@ -161,7 +164,8 @@ lcd.backlight(True)
 from nitbw_lcd import LCD
 import time
 
-lcd = LCD(scl=22, sda=21, addr=0x27)
+i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=400000)
+lcd = LCD(i2c, addr=0x27)
 for p in range(0, 101, 5):
     lcd.progress_bar(3, p)
     lcd.print(f"{p:3d}%", 16, 1)
@@ -172,7 +176,8 @@ for p in range(0, 101, 5):
 ```python
 from nitbw_lcd import LCD
 
-lcd = LCD(scl=22, sda=21, addr=0x27)
+i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=400000)
+lcd = LCD(i2c, addr=0x27)
 # Thermometer-Symbol auf CGRAM-Platz 7 laden
 thermo = [0b00100, 0b01010, 0b01010, 0b01010,
           0b01010, 0b11111, 0b11111, 0b01110]
@@ -184,7 +189,8 @@ lcd.zeichen_schreiben(7, 0, 0)  # Zeichen an Position (0,0) ausgeben
 ```python
 from nitbw_lcd import LCD
 
-lcd = LCD(scl=22, sda=21, addr=0x27)
+i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=400000)
+lcd = LCD(i2c, addr=0x27)
 adc_wert = 2048
 spalte = lcd.map(adc_wert, 0, 4095, 0, 19)
 prozent = lcd.map(adc_wert, 0, 4095, 0, 100)
@@ -195,7 +201,8 @@ lcd.print(f"Spalte:{spalte} %:{prozent}", 0, 0)
 ```python
 from nitbw_lcd import LCD
 
-lcd = LCD(scl=22, sda=21, addr=0x27)
+i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=400000)
+lcd = LCD(i2c, addr=0x27)
 lcd.print("T", 0, 2)
 lcd.draw_bar(2, 0, 9, 65)   # Temperatur-Balken
 lcd.print("F", 10, 2)

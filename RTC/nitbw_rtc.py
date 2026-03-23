@@ -2,7 +2,7 @@
 NIT Bibliothek: RTC - Echtzeituhr (Real Time Clock)
 Fuer ESP32 mit MicroPython
 
-Version:    1.1.0
+Version:    1.2.0
 Autor:      Volker Rust / nitbw
 Lizenz:     MIT (siehe LICENSE)
 Erstellt:   2026-03
@@ -11,7 +11,7 @@ Unterstuetzt DS1307 und DS3231 Echtzeituhr-Module ueber I2C.
 Automatische Chip-Auswahl ueber Factory-Funktion RTC().
 """
 
-from machine import I2C, Pin
+from machine import I2C
 import time
 
 
@@ -52,21 +52,17 @@ class RTCBasis:
     Schnittstelle: I2C
     """
 
-    def __init__(self, i2c=None, addr=0x68, scl=22, sda=21, i2c_id=0):
+    def __init__(self, i2c, addr=0x68):
         """
         Initialisiert die RTC.
 
         Args:
-            i2c: Optionales I2C-Objekt. Falls None, wird eines erstellt.
+            i2c: Initialisiertes I2C-Objekt.
             addr: I2C-Adresse (Standard: 0x68)
-            scl: GPIO-Pin fuer SCL (Standard: 22)
-            sda: GPIO-Pin fuer SDA (Standard: 21)
-            i2c_id: I2C-Bus-ID (Standard: 0)
         """
-        if i2c is None:
-            self.i2c = I2C(i2c_id, scl=Pin(scl), sda=Pin(sda), freq=100000)
-        else:
-            self.i2c = i2c
+        if not isinstance(i2c, I2C):
+            raise TypeError("i2c muss ein initialisiertes machine.I2C Objekt sein")
+        self.i2c = i2c
         self.addr = addr
 
         # Pruefen ob Geraet erreichbar
@@ -527,8 +523,8 @@ class DS1307(RTCBasis):
     _REG_CONTROL  = 0x07
     _REG_RAM      = 0x08
 
-    def __init__(self, i2c=None, addr=0x68, scl=22, sda=21, i2c_id=0):
-        super().__init__(i2c=i2c, addr=addr, scl=scl, sda=sda, i2c_id=i2c_id)
+    def __init__(self, i2c, addr=0x68):
+        super().__init__(i2c=i2c, addr=addr)
 
     def aktuelleDaten(self):
         """
@@ -666,8 +662,8 @@ class DS3231(RTCBasis):
     _REG_STATUS     = 0x0F
     _REG_TEMPERATUR = 0x11
 
-    def __init__(self, i2c=None, addr=0x68, scl=22, sda=21, i2c_id=0):
-        super().__init__(i2c=i2c, addr=addr, scl=scl, sda=sda, i2c_id=i2c_id)
+    def __init__(self, i2c, addr=0x68):
+        super().__init__(i2c=i2c, addr=addr)
 
     def aktuelleDaten(self):
         """
@@ -869,26 +865,23 @@ class DS3231(RTCBasis):
 # Factory-Funktion
 # ============================================================================
 
-def RTC(chip='DS3231', i2c=None, addr=0x68, scl=22, sda=21, i2c_id=0):
+def RTC(i2c, chip='DS3231', addr=0x68):
     """
     Erzeugt ein RTC-Objekt fuer den angegebenen Chip-Typ.
 
     Args:
         chip: 'DS1307' oder 'DS3231' (Standard: 'DS3231')
-        i2c: Optionales I2C-Objekt
+        i2c: Initialisiertes I2C-Objekt
         addr: I2C-Adresse (Standard: 0x68)
-        scl: GPIO-Pin fuer SCL (Standard: 22)
-        sda: GPIO-Pin fuer SDA (Standard: 21)
-        i2c_id: I2C-Bus-ID (Standard: 0)
 
     Returns:
         DS1307 oder DS3231 Objekt
     """
     chip_upper = chip.upper()
     if chip_upper == 'DS1307':
-        return DS1307(i2c=i2c, addr=addr, scl=scl, sda=sda, i2c_id=i2c_id)
+        return DS1307(i2c=i2c, addr=addr)
     elif chip_upper == 'DS3231':
-        return DS3231(i2c=i2c, addr=addr, scl=scl, sda=sda, i2c_id=i2c_id)
+        return DS3231(i2c=i2c, addr=addr)
     else:
         raise ValueError(
             "Unbekannter Chip-Typ: {}. Unterstuetzt: DS1307, DS3231".format(chip))

@@ -249,10 +249,12 @@ print(model2.predict_forest([52, 70, 151, 214, 210, 140]))
 
 ### Snippet 9: Daten direkt vom Sensor uebergeben (ohne CSV)
 ```python
+from machine import I2C, Pin
 from nitbw_as7262 import AS7262
 from nitbw_mlearn import MLearn
 
-sensor = AS7262(sda=21, scl=22, led=True)
+i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=400000)
+sensor = AS7262(i2c, led=True)
 model = MLearn()
 
 # 10 Messungen als Label 1 hinzufuegen

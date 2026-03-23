@@ -6,10 +6,12 @@ Hardware: ESP32 + AS7262 + Taster an GPIO 12
 
 from nitbw_as7262 import AS7262
 from nitbw_datensammler import DatenSammler
+from machine import I2C, Pin
 
 
 # --- Sensor initialisieren ---
-sensor = AS7262(sda=21, scl=22, led=True)
+i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=400000)
+sensor = AS7262(i2c, led=True)
 
 # --- Datensammler konfigurieren ---
 # Der AS7262 hat 6 Kanaele: Violett, Blau, Gruen, Gelb, Orange, Rot
