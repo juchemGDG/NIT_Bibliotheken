@@ -2,7 +2,7 @@
 NIT Bibliothek: OLED - Grafiktreiber fuer SSD1306 und SH1106 Displays
 Fuer ESP32 mit MicroPython
 
-Version:    1.1.0
+Version:    1.2.0
 Autor:      Stephan Juchem / nitbw
 Lizenz:     MIT (siehe LICENSE)
 Erstellt:   2026-03
