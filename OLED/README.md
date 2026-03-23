@@ -38,10 +38,14 @@ Beispiel ESP32-Standardpins:
 
 ## Schnellstart
 ```python
+from machine import I2C, Pin
 from nitbw_oled import OLED
 
+# I2C initialisieren
+i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=400000)
+
 # Display initialisieren
-oled = OLED(scl=22, sda=21, chip='ssd1306', addr=0x3C)
+oled = OLED(i2c, chip='ssd1306', addr=0x3C)
 
 # Text in den Buffer schreiben
 oled.clear()
@@ -52,15 +56,13 @@ oled.show()
 ```
 
 ## API-Referenz
-Konstruktor: `OLED(scl=22, sda=21, chip='ssd1306', enabled=True, i2c_id=0, addr=0x3c, logo=True)`
+Konstruktor: `OLED(i2c, chip='ssd1306', enabled=True, addr=0x3c, logo=True)`
 
 | Parameter | Typ | Standard | Beschreibung |
 |---|---|---|---|
-| `scl` | `int` | `22` | SCL-Pin |
-| `sda` | `int` | `21` | SDA-Pin |
+| `i2c` | `machine.I2C` | - | Initialisierter I2C-Bus |
 | `chip` | `str` | `'ssd1306'` | Controller (`ssd1306` oder `sh1106`) |
 | `enabled` | `bool` | `True` | Display ein/aus |
-| `i2c_id` | `int` | `0` | I2C-Busnummer |
 | `addr` | `int` | `0x3c` | I2C-Adresse |
 | `logo` | `bool` | `True` | Startlogo zeigen |
 
@@ -100,7 +102,7 @@ oled.show()
 
 Snippet 3: SH1106 mit anderer Adresse
 ```python
-oled = OLED(chip='sh1106', addr=0x3D)
+oled = OLED(i2c, chip='sh1106', addr=0x3D)
 ```
 
 Snippet 4: Sans-Font mit Umlauten und Skalierung

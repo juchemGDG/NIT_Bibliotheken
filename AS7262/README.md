@@ -69,10 +69,12 @@ from nitbw_as7262 import AS7262
 ## Schnellstart
 
 ```python
+from machine import I2C, Pin
 from nitbw_as7262 import AS7262
 import time
 
-sensor = AS7262(sda=21, scl=22, led=True)
+i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=400000)
+sensor = AS7262(i2c, led=True)
 
 while True:
     roh = sensor.messen_roh()
@@ -87,16 +89,13 @@ while True:
 ### Konstruktor
 
 ```python
-AS7262(i2c=None, sda=21, scl=22, freq=400000, led=False,
+AS7262(i2c, led=False,
        integrationszeit=50, gain=1)
 ```
 
 | Parameter | Typ | Standard | Beschreibung |
 |---|---|---|---|
-| `i2c` | I2C | `None` | Bestehendes I2C-Objekt, sonst wird eines erstellt |
-| `sda` | int | `21` | GPIO-Pin fuer SDA |
-| `scl` | int | `22` | GPIO-Pin fuer SCL |
-| `freq` | int | `400000` | I2C-Taktrate in Hz |
+| `i2c` | I2C | - | Initialisiertes I2C-Objekt |
 | `led` | bool | `False` | True schaltet die LED ein |
 | `integrationszeit` | int | `50` | Messzeit in Einheiten von 2.8 ms (1-255) |
 | `gain` | int | `1` | 0=1x, 1=3.7x, 2=16x, 3=64x |
@@ -129,16 +128,18 @@ AS7262(i2c=None, sda=21, scl=22, freq=400000, led=False,
 
 1. Nur Rohwerte als Liste (fuer ML):
 ```python
+from machine import I2C, Pin
 from nitbw_as7262 import AS7262
 
-sensor = AS7262(sda=21, scl=22, led=True)
+i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=400000)
+sensor = AS7262(i2c, led=True)
 features = sensor.messen_roh_liste()
 print(features)  # [violett, blau, gruen, gelb, orange, rot]
 ```
 
 2. Integrationszeit und Gain anpassen:
 ```python
-sensor = AS7262(sda=21, scl=22, integrationszeit=100, gain=2)
+sensor = AS7262(i2c, integrationszeit=100, gain=2)
 # Laengere Messung, hoehere Empfindlichkeit
 ```
 
@@ -146,7 +147,7 @@ sensor = AS7262(sda=21, scl=22, integrationszeit=100, gain=2)
 ```python
 from machine import I2C, Pin
 i2c = I2C(0, sda=Pin(21), scl=Pin(22), freq=400000)
-sensor = AS7262(i2c=i2c, led=True)
+sensor = AS7262(i2c, led=True)
 ```
 
 Praktische Hinweise / Fehlersuche:

@@ -5,11 +5,13 @@ Hardware: DS3231 RTC-Modul am ESP32 (DS1307 unterstuetzt weniger Funktionen)
 """
 
 from nitbw_rtc import RTC, DS3231
+from machine import I2C, Pin
 import time
 
 
 # --- Initialisierung ---
-rtc = RTC(chip='DS3231', scl=22, sda=21)
+i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=100000)
+rtc = RTC(chip='DS3231', i2c=i2c)
 
 # --- Hauptprogramm ---
 

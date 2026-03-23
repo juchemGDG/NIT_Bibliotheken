@@ -12,7 +12,7 @@ Lichtintensitaeten in sechs Spektralkanaelen (Violett bis Rot).
 Die Kommunikation erfolgt ueber ein virtuelles Registerinterface.
 """
 
-from machine import I2C, Pin
+from machine import I2C
 import time
 
 
@@ -68,25 +68,21 @@ class AS7262:
     # Initialisierung
     # ---------------------------------------------------------------
 
-    def __init__(self, i2c=None, sda=21, scl=22, freq=400000, led=False,
+    def __init__(self, i2c, led=False,
                  integrationszeit=50, gain=1):
         """
         Initialisiert den AS7262 Spektralsensor.
 
         Args:
-            i2c:    Bestehendes I2C-Objekt. Falls None, wird eines erstellt.
-            sda:    GPIO-Pin fuer SDA (Standard: 21)
-            scl:    GPIO-Pin fuer SCL (Standard: 22)
-            freq:   I2C-Taktrate in Hz
+            i2c:    Initialisiertes I2C-Objekt.
             led:    Bei True wird die eingebaute LED eingeschaltet.
             integrationszeit: Messzeit in Einheiten von 2.8 ms (1-255).
                               Hoehere Werte = laengere Messung, weniger Rauschen.
             gain:   Verstaerkung: 0 = 1x, 1 = 3.7x, 2 = 16x, 3 = 64x
         """
-        if i2c is not None:
-            self._i2c = i2c
-        else:
-            self._i2c = I2C(0, sda=Pin(sda), scl=Pin(scl), freq=freq)
+        if not isinstance(i2c, I2C):
+            raise TypeError("i2c muss ein initialisiertes machine.I2C Objekt sein")
+        self._i2c = i2c
 
         # Pruefen, ob der Sensor antwortet
         geraete = self._i2c.scan()

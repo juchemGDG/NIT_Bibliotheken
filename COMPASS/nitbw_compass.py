@@ -13,7 +13,7 @@ neigungskompensiertes Heading (Sensorfusion).
 Optimiert fuer den Einsatz im Unterricht mit klarer API fuer Richtungsdaten.
 """
 
-from machine import I2C, Pin
+from machine import I2C
 import math
 
 
@@ -369,23 +369,20 @@ class Compass:
         RANGE_30G: 0.12083
     }
 
-    def __init__(self, i2c, addr=ADDRESS, scl=22, sda=21,
+    def __init__(self, i2c, addr=ADDRESS,
                  use_accel=True, accel_addr=None):
         """
         Kompass initialisieren (optional mit Beschleunigungssensor).
 
         Args:
-            i2c:        I2C Bus Objekt (oder None zum Auto-Erstellen)
+            i2c:        Initialisiertes I2C Bus Objekt
             addr:       I2C-Adresse des Magnetfeldsensors
-            scl:        SCL-Pin falls i2c=None
-            sda:        SDA-Pin falls i2c=None
             use_accel:  True = ADXL345 automatisch suchen und initialisieren
             accel_addr: I2C-Adresse des ADXL345 (None = Standard 0x53)
         """
-        if i2c is None:
-            self.i2c = I2C(0, scl=Pin(scl), sda=Pin(sda), freq=400000)
-        else:
-            self.i2c = i2c
+        if not isinstance(i2c, I2C):
+            raise TypeError("i2c muss ein initialisiertes machine.I2C Objekt sein")
+        self.i2c = i2c
 
         self.addr        = addr
         self.range       = self.RANGE_2G

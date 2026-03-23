@@ -26,15 +26,19 @@ Konsolidierte Bibliothekssammlung fuer den NIT-Unterricht mit einheitlichem Name
 
 ```python
 # Beispiel LCD
+from machine import I2C, Pin
 from nitbw_lcd import LCD
-lcd = LCD(scl=22, sda=21, addr=0x27)
+i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=400000)
+lcd = LCD(i2c, addr=0x27)
 lcd.print('Hallo NIT', 0, 0)
 ```
 
 ```python
 # Beispiel OLED
+from machine import I2C, Pin
 from nitbw_oled import OLED
-oled = OLED(scl=22, sda=21, chip='ssd1306')
+i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=400000)
+oled = OLED(i2c, chip='ssd1306')
 oled.print('Hello', 0, 0)
 oled.show()
 ```
@@ -58,8 +62,10 @@ print(sensor.dominante_farbe())
 
 ```python
 # Beispiel AS7262
+from machine import I2C, Pin
 from nitbw_as7262 import AS7262
-sensor = AS7262(sda=21, scl=22, led=True)
+i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=400000)
+sensor = AS7262(i2c, led=True)
 print(sensor.messen_roh())
 ```
 

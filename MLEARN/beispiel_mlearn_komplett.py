@@ -8,6 +8,7 @@ Hardware: ESP32 + AS7262 + Taster an GPIO 12
 from nitbw_as7262 import AS7262
 from nitbw_mlearn import MLearn
 from nitbw_datensammler import DatenSammler
+from machine import I2C, Pin
 import time
 
 
@@ -31,7 +32,8 @@ print("=" * 40)
 print("PHASE 1: Daten sammeln")
 print("=" * 40)
 
-sensor = AS7262(sda=21, scl=22, led=True)
+i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=400000)
+sensor = AS7262(i2c, led=True)
 
 sammler = DatenSammler(
     taster_pin=TASTER_PIN,
