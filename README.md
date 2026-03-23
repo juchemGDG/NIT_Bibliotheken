@@ -12,6 +12,7 @@ Konsolidierte Bibliothekssammlung fuer den NIT-Unterricht mit einheitlichem Name
 | OLED | `OLED/nitbw_oled.py` | `OLED/beispiel_oled_schnellstart.py`, `OLED/beispiel_oled.py` | 1.1.0 |
 | BME280 | `BME280/nitbw_bme280.py` | `BME280/beispiel_bme280.py` | 1.1.0 |
 | DS18B20 | `DS18B20/nitbw_ds18b20.py` | `DS18B20/beispiel_ds18b20.py`, `DS18B20/beispiel_ds18b20_mehrere.py` | 1.0.0 |
+| KY023 | `KY023/nitbw_ky023.py` | `KY023/beispiel_ky023.py`, `KY023/beispiel_ky023_richtung.py` | 1.0.0 |
 | COMPASS | `COMPASS/nitbw_compass.py` | `COMPASS/beispiel_compass.py`, `COMPASS/beispiel_compass_rotation.py` | 1.1.0 |
 | MLEARN | `MLEARN/nitbw_mlearn.py` | `MLEARN/beispiel_mlearn.py` | 1.1.0 |
 | AS7262 | `AS7262/nitbw_as7262.py` | `AS7262/beispiel_as7262.py`, `AS7262/beispiel_as7262_kalibriert.py` | 1.0.0 |
@@ -62,6 +63,13 @@ print("Temperatur: {:.2f} °C".format(sensor.messen()))
 ```
 
 ```python
+# Beispiel KY023
+from nitbw_ky023 import KY023
+joystick = KY023(vrx_pin=34, vry_pin=35, sw_pin=32)
+print(joystick.richtung(), joystick.gedrueckt())
+```
+
+```python
 # Beispiel TCS3200
 from nitbw_tcs3200 import TCS3200
 sensor = TCS3200(out=27, s2=14, s3=12, s0=26, s1=25)
@@ -102,6 +110,7 @@ print(model.predict_forest([52, 70, 151, 214, 210, 140]))
 - `OLED/README.md`
 - `BME280/README.md`
 - `DS18B20/README.md`
+- `KY023/README.md`
 - `COMPASS/README.md`
 - `MLEARN/README.md`
 - `MLEARN2/README.md`
