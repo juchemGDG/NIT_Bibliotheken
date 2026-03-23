@@ -2,6 +2,8 @@
 Beispiel fuer NIT Bibliothek: OLED
 Zeigt: Uebersicht ueber zentrale OLED-Funktionen
 Hardware: 128x64 OLED (SSD1306 oder SH1106) per I2C
+
+Hinweis: Dieses Beispiel ist auf 128x64 ausgelegt und nicht fuer 128x32 geeignet.
 """
 
 from nitbw_oled import OLED
@@ -16,6 +18,8 @@ import random
 i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=400000)
 
 oled = OLED(i2c, chip='ssd1306')
+
+# Dieses Funktionsbeispiel verwendet Y-Positionen bis 63 und ist daher nur fuer 128x64 gedacht.
 
 
 # --- Hauptprogramm ---

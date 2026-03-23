@@ -2,7 +2,7 @@
 NIT Bibliothek: LCD - HD44780 LCD-Display ueber PCF8574 I2C-Adapter
 Fuer ESP32 mit MicroPython
 
-Version:    1.1.0
+Version:    1.2.0
 Autor:      Volker Rust / nitbw
 Lizenz:     MIT (siehe LICENSE)
 Erstellt:   2026-03

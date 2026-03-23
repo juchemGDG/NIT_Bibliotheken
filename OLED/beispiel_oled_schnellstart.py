@@ -16,6 +16,8 @@ i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=400000)
 
 # Display initialisieren (SSD1306)
 oled = OLED(i2c, chip='ssd1306')
+# Fuer 128x32 stattdessen:
+# oled = OLED(i2c, chip='ssd1306', width=128, height=32, logo=False)
 
 # --- Hauptprogramm ---
 # Text ausgeben und anzeigen
