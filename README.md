@@ -4,6 +4,8 @@ Konsolidierte Bibliothekssammlung fuer den NIT-Unterricht mit einheitlichem Name
 - Bibliotheken: `nitbw_<name>.py`
 - Beispiele: `beispiel_<thema>.py`
 
+Konventionen fuer neue Bibliotheken sind in [`.github/copilot-instructions.md`](.github/copilot-instructions.md) dokumentiert.
+
 ## Verfuegbare Bibliotheken
 
 | Bibliothek | Moduldatei | Beispiele (Auswahl) | Version |
