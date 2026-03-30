@@ -33,7 +33,7 @@ print("PHASE 1: Daten sammeln")
 print("=" * 40)
 
 i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=400000)
-sensor = AS7262(i2c, led=True)
+sensor = AS7262(i2c, led='messen')
 
 sammler = DatenSammler(
     taster_pin=TASTER_PIN,

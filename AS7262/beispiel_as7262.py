@@ -15,7 +15,8 @@ import time
 i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=400000)
 
 # Sensor initialisieren
-sensor = AS7262(i2c, led=True)
+# LED wird nur waehrend der Messung eingeschaltet
+sensor = AS7262(i2c, led='messen')
 
 
 # --- Hauptprogramm ---
@@ -28,6 +29,8 @@ while True:
 
     # Dominanter Kanal
     print("Staerkster Kanal:", sensor.dominanter_kanal())
+    # Beispiel Override: LED ganz aus fuer diese Messung
+    print("Staerkster Kanal ohne LED:", sensor.dominanter_kanal(led='aus'))
     print("Temperatur: {} C".format(sensor.temperatur()))
     print("-" * 30)
     time.sleep(1)

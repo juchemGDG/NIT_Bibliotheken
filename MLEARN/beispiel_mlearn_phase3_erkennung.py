@@ -12,7 +12,7 @@ import time
 
 # --- Sensor initialisieren ---
 i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=400000)
-sensor = AS7262(i2c, led=True)
+sensor = AS7262(i2c, led='messen')
 
 # --- Modell laden ---
 model = MLearn()
