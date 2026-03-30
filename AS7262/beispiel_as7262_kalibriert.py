@@ -14,7 +14,8 @@ import time
 # ESP32 Standard: SCL=22, SDA=21
 i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=400000)
 
-sensor = AS7262(i2c, led=True, integrationszeit=100, gain=2)
+# LED wird nur waehrend der Messung eingeschaltet
+sensor = AS7262(i2c, led='messen', integrationszeit=100, gain=2)
 
 
 # --- Hauptprogramm ---

@@ -16,7 +16,7 @@ Konventionen fuer neue Bibliotheken sind in [`.github/copilot-instructions.md`](
 | DS18B20 | `DS18B20/nitbw_ds18b20.py` | `DS18B20/beispiel_ds18b20.py`, `DS18B20/beispiel_ds18b20_mehrere.py` | 1.0.0 |
 | COMPASS | `COMPASS/nitbw_compass.py` | `COMPASS/beispiel_compass.py`, `COMPASS/beispiel_compass_rotation.py` | 1.2.0 |
 | MLEARN | `MLEARN/nitbw_mlearn.py` | `MLEARN/beispiel_mlearn.py` | 1.1.0 |
-| AS7262 | `AS7262/nitbw_as7262.py` | `AS7262/beispiel_as7262.py`, `AS7262/beispiel_as7262_kalibriert.py` | 1.1.0 |
+| AS7262 | `AS7262/nitbw_as7262.py` | `AS7262/beispiel_as7262.py`, `AS7262/beispiel_as7262_kalibriert.py` | 2.0.0 |
 | RTC | `RTC/nitbw_rtc.py` | `RTC/beispiel_rtc.py`, `RTC/beispiel_rtc_komplett.py` | 1.2.0 |
 | Servo | `Servo/nitbw_servo.py` | `Servo/beispiel_servo.py`, `Servo/beispiel_servo_continuous.py` | 1.1.0 |
 | Ultraschall | `ULTRASCHALL/nitbw_ultraschall.py` | `ULTRASCHALL/beispiel_ultraschall.py`, `ULTRASCHALL/beispiel_ultraschall_einparkhilfe.py` | 1.0.0 |
@@ -76,7 +76,7 @@ print(sensor.dominante_farbe())
 from machine import I2C, Pin
 from nitbw_as7262 import AS7262
 i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=400000)
-sensor = AS7262(i2c, led=True)
+sensor = AS7262(i2c)
 print(sensor.messen_roh())
 ```
 

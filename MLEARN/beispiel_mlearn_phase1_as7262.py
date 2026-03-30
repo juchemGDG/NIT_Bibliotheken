@@ -11,7 +11,7 @@ from machine import I2C, Pin
 
 # --- Sensor initialisieren ---
 i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=400000)
-sensor = AS7262(i2c, led=True)
+sensor = AS7262(i2c, led='messen')
 
 # --- Datensammler konfigurieren ---
 # Der AS7262 hat 6 Kanaele: Violett, Blau, Gruen, Gelb, Orange, Rot

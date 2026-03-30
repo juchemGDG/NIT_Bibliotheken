@@ -7,6 +7,21 @@ ueber I2C an. Der Sensor misst Lichtintensitaeten in sechs Wellenlaengen
 des sichtbaren Spektrums (Violett bis Rot). Die Kommunikation erfolgt
 ueber das virtuelle Registerinterface des AS7262.
 
+### Rohdaten vs. kalibrierte Messung
+
+| Kriterium | Rohdaten | Kalibrierte Messung |
+|---|---|---|
+| Datentyp | 16-Bit Integer | Float |
+| Einheit | keine | uW/cm2 |
+| Abhaengigkeit vom Setup | hoch (Gain, Integrationszeit, LED, Abstand) | geringer |
+| Vergleichbarkeit zwischen Sensoren | eher gering | besser |
+| Typischer Einsatz | ML im gleichen Aufbau | Dokumentation, Vergleich, Auswertung |
+
+Praxisregel:
+
+- Verwende Rohdaten, wenn du ein Modell im gleichen Messaufbau trainierst.
+- Verwende kalibrierte Werte, wenn Messungen zwischen Aufbauten oder Sensoren vergleichbar sein sollen.
+
 ## Features
 
 - I2C-Ansteuerung ueber das virtuelle Register-Protokoll des AS7262
@@ -17,7 +32,9 @@ ueber das virtuelle Registerinterface des AS7262.
 - Ausgabe als Dictionary oder als Liste (direkt fuer ML verwendbar)
 - Einstellbare Integrationszeit (1-255, je 2.8 ms)
 - Einstellbare Verstaerkung (1x, 3.7x, 16x, 64x)
-- Steuerung der eingebauten LED
+- LED-Modus als Standard: LED nur waehrend einer Messung aktiv
+- Manuelle LED-Steuerung fuer Dauerlicht (optional)
+- LED-Override pro Messung: `messen`, `an`, `aus`
 - Temperaturmessung des Sensors
 - Erkennung des dominanten Farbkanals
 - Keine externen Abhaengigkeiten ausser `machine` und `struct`
@@ -74,7 +91,7 @@ from nitbw_as7262 import AS7262
 import time
 
 i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=400000)
-sensor = AS7262(i2c, led=True)
+sensor = AS7262(i2c)  # Default: LED nur waehrend Messung
 
 while True:
     roh = sensor.messen_roh()
@@ -89,14 +106,14 @@ while True:
 ### Konstruktor
 
 ```python
-AS7262(i2c, led=False,
+AS7262(i2c, led='messen',
        integrationszeit=50, gain=1)
 ```
 
 | Parameter | Typ | Standard | Beschreibung |
 |---|---|---|---|
 | `i2c` | I2C | - | Initialisiertes I2C-Objekt |
-| `led` | bool | `False` | True schaltet die LED ein |
+| `led` | str | `'messen'` | LED-Modus: `'messen'`, `'aus'`, `'an'` |
 | `integrationszeit` | int | `50` | Messzeit in Einheiten von 2.8 ms (1-255) |
 | `gain` | int | `1` | 0=1x, 1=3.7x, 2=16x, 3=64x |
 
@@ -113,11 +130,11 @@ AS7262(i2c, led=False,
 
 | Methode | Rueckgabe | Beschreibung |
 |---|---|---|
-| `messen_roh()` | dict | 6 Rohwerte als Dictionary |
-| `messen_roh_liste()` | list | 6 Rohwerte als Liste |
-| `messen_kalibriert()` | dict | 6 kalibrierte Float-Werte als Dictionary |
-| `messen_kalibriert_liste()` | list | 6 kalibrierte Float-Werte als Liste |
-| `dominanter_kanal()` | str | Name des staerksten Kanals |
+| `messen_roh(led=None)` | dict | 6 Rohwerte als Dictionary; LED-Override pro Messung |
+| `messen_roh_liste(led=None)` | list | 6 Rohwerte als Liste; LED-Override pro Messung |
+| `messen_kalibriert(led=None)` | dict | 6 kalibrierte Float-Werte als Dictionary; LED-Override pro Messung |
+| `messen_kalibriert_liste(led=None)` | list | 6 kalibrierte Float-Werte als Liste; LED-Override pro Messung |
+| `dominanter_kanal(led=None)` | str | Name des staerksten Kanals; LED-Override pro Messung |
 
 ## Beispiele
 
@@ -132,7 +149,7 @@ from machine import I2C, Pin
 from nitbw_as7262 import AS7262
 
 i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=400000)
-sensor = AS7262(i2c, led=True)
+sensor = AS7262(i2c)
 features = sensor.messen_roh_liste()
 print(features)  # [violett, blau, gruen, gelb, orange, rot]
 ```
@@ -143,17 +160,18 @@ sensor = AS7262(i2c, integrationszeit=100, gain=2)
 # Laengere Messung, hoehere Empfindlichkeit
 ```
 
-3. Bestehendes I2C-Objekt weiterverwenden:
+3. LED-Override pro Messung nutzen:
 ```python
-from machine import I2C, Pin
-i2c = I2C(0, sda=Pin(21), scl=Pin(22), freq=400000)
-sensor = AS7262(i2c, led=True)
+sensor = AS7262(i2c)  # Default: messen
+roh_ohne_led = sensor.messen_roh(led='aus')
+roh_dauerlicht = sensor.messen_roh(led='an')
+roh_messen = sensor.messen_roh(led='messen')
 ```
 
 Praktische Hinweise / Fehlersuche:
 
 - `AS7262 nicht gefunden`: Verkabelung pruefen, I2C-Scanner nutzen.
-- Messwerte immer Null: LED einschalten oder Gain erhoehen.
+- Messwerte immer Null: Standard-Modus `'messen'` nutzen (`AS7262(i2c)`) oder `sensor.set_led(True)` fuer Dauerlicht setzen.
 - Werte uebersteuert (65535): Gain reduzieren oder Integrationszeit verringern.
 - Langsame Messung: Integrationszeit senken (z. B. auf 20).
 

@@ -2,7 +2,7 @@
 NIT Bibliothek: MLEARN - ML-Algorithmen fuer MicroPython
 Fuer ESP32 mit MicroPython
 
-Version:    2.1.0
+Version:    2.2.0
 Autor:      Stephan Juchem, Volker Rust / nitbw
 Lizenz:     MIT (siehe LICENSE)
 Erstellt:   2026-03
@@ -87,6 +87,8 @@ class MLearn:
         self._nn_w2 = None  # Gewichte Hidden -> Output
         self._nn_b2 = None  # Bias Output
         self._nn_labels = None  # Zuordnung Index -> Label
+        self._nn_min = None  # Min-Werte fuer Skalierung
+        self._nn_max = None  # Max-Werte fuer Skalierung
 
     # =============================================================
     # DATEN LADEN UND AUFTEILEN
@@ -192,20 +194,28 @@ class MLearn:
                 name, f_min, f_max, f_mean))
         print()
 
-    def split_data(self, anteil_test=0.2, seed=42):
+    def split_data(self, anteil_test=0.2, seed=None):
         """
         Teilt die Daten in Trainings- und Testdaten auf.
 
         Das ist wichtig, um zu pruefen, ob das Modell auch mit
         NEUEN Daten richtig liegt (nicht nur mit den Trainingsdaten).
 
+        Die Aufteilung ist standardmaessig zufaellig (bei jedem Aufruf
+        anders). Mit seed=<Zahl> kann man einen festen Startwert setzen,
+        um reproduzierbare Ergebnisse zu erhalten.
+
         Args:
             anteil_test: Anteil der Testdaten (0.0 bis 1.0, Standard: 20%)
             seed:        Startwert fuer den Zufallsgenerator
+                         (None = zufaellig, Zahl = reproduzierbar)
 
         Returns:
             tuple: (train_data, test_data) -- zwei Listen von (features, label)
         """
+        if seed is None:
+            import time
+            seed = time.ticks_ms()
         _set_seed(seed)
 
         # Daten mischen (Fisher-Yates-Shuffle)
@@ -972,6 +982,13 @@ class MLearn:
             return [1.0 / len(werte)] * len(werte)
         return [e / summe for e in exp_werte]
 
+    def _nn_scale(self, features):
+        """Skaliert Features auf 0-1 mit den beim Training berechneten Min/Max-Werten."""
+        return [
+            (f - mn) / (mx - mn) if mx != mn else 0.0
+            for f, mn, mx in zip(features, self._nn_min, self._nn_max)
+        ]
+
     def train_netz(self, hidden=8, epochs=None, lr=None):
         """
         Trainiert ein flaches neuronales Netz (1 Hidden Layer).
@@ -994,6 +1011,14 @@ class MLearn:
             lr = self.lr
 
         n_features = len(self.data[0][0])
+
+        # Min/Max-Skalierung berechnen (wie bei kNN)
+        first_features = self.data[0][0]
+        self._nn_min = first_features[:]
+        self._nn_max = first_features[:]
+        for features, _ in self.data:
+            self._nn_min = [min(a, b) for a, b in zip(self._nn_min, features)]
+            self._nn_max = [max(a, b) for a, b in zip(self._nn_max, features)]
 
         # Welche Labels gibt es? Sortiert, damit Index stabil bleibt.
         self._nn_labels = sorted(set(l for _, l in self.data))
@@ -1034,6 +1059,9 @@ class MLearn:
             for features, label in self.data:
                 idx_label = label_to_idx[label]
 
+                # Features skalieren (0-1)
+                features = self._nn_scale(features)
+
                 # === FORWARD PASS ===
                 # Schritt 1: Input -> Hidden
                 hidden_raw = [0.0] * hidden
@@ -1060,7 +1088,7 @@ class MLearn:
                 # === LOSS BERECHNEN ===
                 # Cross-Entropy-Loss fuer den richtigen Label-Index
                 p = output_prob[idx_label]
-                if p > 0:
+                if p > 1e-15:
                     gesamt_loss -= math.log(p)
 
                 # === BACKWARD PASS (Backpropagation) ===
@@ -1092,10 +1120,10 @@ class MLearn:
                 for h in range(hidden):
                     self._nn_b1[h] -= lr * d_hidden[h]
 
-            # Fortschritt alle 50 Epochen anzeigen
-            if (epoche + 1) % 50 == 0 or epoche == 0:
+            # Fortschritt alle 10 Epochen anzeigen
+            if (epoche + 1) % 10 == 0 or epoche == 0:
                 avg_loss = gesamt_loss / len(self.data)
-                print("Epoche {:>4d}/{}: Loss = {:.4f}".format(
+                print("Epoche {:>4d}/{}: Loss = {:.8f}".format(
                     epoche + 1, epochs, avg_loss))
 
     def predict_netz(self, features):
@@ -1118,6 +1146,9 @@ class MLearn:
         hidden = len(self._nn_b1)
         n_output = len(self._nn_b2)
 
+        # Features skalieren
+        features = self._nn_scale(features)
+
         # Forward Pass: Input -> Hidden
         hidden_out = []
         for h in range(hidden):
@@ -1136,7 +1167,12 @@ class MLearn:
 
         # Softmax und bestes Label
         probs = self._nn_softmax(output_raw)
-        best_idx = probs.index(max(probs))
+        best_idx = 0
+        best_val = probs[0]
+        for i in range(1, len(probs)):
+            if probs[i] > best_val:
+                best_val = probs[i]
+                best_idx = i
         return self._nn_labels[best_idx]
 
     def predict_netz_wahrscheinlichkeiten(self, features):
@@ -1157,6 +1193,9 @@ class MLearn:
         n_features = len(features)
         hidden = len(self._nn_b1)
         n_output = len(self._nn_b2)
+
+        # Features skalieren
+        features = self._nn_scale(features)
 
         hidden_out = []
         for h in range(hidden):
@@ -1181,10 +1220,13 @@ class MLearn:
 
     def vergleiche(self, test_data, label_namen=None):
         """
-        Trainiert und testet alle verfuegbaren Modelle und zeigt eine Vergleichstabelle.
+        Testet alle bereits trainierten Modelle und zeigt eine Vergleichstabelle.
 
         So sehen Schueler auf einen Blick, welches Modell am besten
         zu ihren Daten passt. Jedes Modell hat Staerken und Schwaechen.
+
+        Hinweis: Nur Modelle, die vorher trainiert wurden, werden bewertet.
+        Nicht trainierte Modelle werden uebersprungen.
 
         Args:
             test_data:   Liste von (features, label) zum Testen
@@ -1193,42 +1235,42 @@ class MLearn:
         Returns:
             dict: {modellname: accuracy} fuer alle getesteten Modelle
         """
-        if not self.data:
-            raise ValueError("Keine Trainingsdaten vorhanden.")
-
         ergebnisse = {}
 
-        # kNN
-        try:
-            self.train_knn()
-            acc = self.accuracy(test_data, self.predict_knn)
-            ergebnisse["kNN (k={})".format(self.k)] = acc
-        except Exception as e:
-            ergebnisse["kNN"] = "Fehler: {}".format(e)
+        # kNN – pruefe ob Trainingsdaten vorhanden
+        if self.data:
+            try:
+                acc = self.accuracy(test_data, self.predict_knn)
+                ergebnisse["kNN (k={})".format(self.k)] = acc
+            except Exception:
+                pass
 
-        # Decision Tree
-        try:
-            self.train_tree(max_depth=4)
-            acc = self.accuracy(test_data, self.predict_tree)
-            ergebnisse["Decision Tree"] = acc
-        except Exception as e:
-            ergebnisse["Decision Tree"] = "Fehler: {}".format(e)
+        # Decision Tree – pruefe ob Baum trainiert wurde
+        if self.tree:
+            try:
+                acc = self.accuracy(test_data, self.predict_tree)
+                ergebnisse["Decision Tree"] = acc
+            except Exception:
+                pass
 
-        # Random Forest
-        try:
-            self.train_forest(n_trees=5, max_depth=3)
-            acc = self.accuracy(test_data, self.predict_forest)
-            ergebnisse["Random Forest (5)"] = acc
-        except Exception as e:
-            ergebnisse["Random Forest"] = "Fehler: {}".format(e)
+        # Random Forest – pruefe ob Wald trainiert wurde
+        if self.forest:
+            try:
+                acc = self.accuracy(test_data, self.predict_forest)
+                ergebnisse["Random Forest ({})".format(len(self.forest))] = acc
+            except Exception:
+                pass
 
-        # Neuronales Netz
-        try:
-            self.train_netz(hidden=8)
-            acc = self.accuracy(test_data, self.predict_netz)
-            ergebnisse["Neuronales Netz"] = acc
-        except Exception as e:
-            ergebnisse["Neuronales Netz"] = "Fehler: {}".format(e)
+        # Neuronales Netz – pruefe ob Gewichte vorhanden
+        if getattr(self, 'w_hidden', None):
+            try:
+                acc = self.accuracy(test_data, self.predict_netz)
+                ergebnisse["Neuronales Netz"] = acc
+            except Exception:
+                pass
+
+        if not ergebnisse:
+            print("Keine trainierten Modelle vorhanden. Bitte zuerst trainieren.")
 
         # Ergebnisse anzeigen
         print("\n=== Modellvergleich ===")
@@ -1283,6 +1325,8 @@ class MLearn:
             modell["w2"] = self._nn_w2
             modell["b2"] = self._nn_b2
             modell["labels"] = self._nn_labels
+            modell["nn_min"] = self._nn_min
+            modell["nn_max"] = self._nn_max
         else:
             raise ValueError("model_type muss 'tree', 'forest', 'knn' oder 'netz' sein.")
 
@@ -1322,6 +1366,8 @@ class MLearn:
             self._nn_w2 = modell["w2"]
             self._nn_b2 = modell["b2"]
             self._nn_labels = modell["labels"]
+            self._nn_min = modell["nn_min"]
+            self._nn_max = modell["nn_max"]
 
         print("Modell geladen: {} ({})".format(filename, model_type))
         return model_type
