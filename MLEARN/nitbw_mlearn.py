@@ -2,7 +2,7 @@
 NIT Bibliothek: MLEARN - ML-Algorithmen fuer MicroPython
 Fuer ESP32 mit MicroPython
 
-Version:    2.2.0
+Version:    2.2.1
 Autor:      Stephan Juchem, Volker Rust / nitbw
 Lizenz:     MIT (siehe LICENSE)
 Erstellt:   2026-03
