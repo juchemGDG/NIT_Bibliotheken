@@ -340,31 +340,42 @@ def phase_4():
     print("Messwerte: {}".format(werte))
     print()
 
+    gefunden = False
+
     # --- kNN erklaeren ---
-    print("-" * 40)
-    print("  kNN-Erklaerung:")
-    print("-" * 40)
-    model.erklaere_knn(werte, label_namen=LABEL_NAMEN)
-    warte_auf_enter()
+    if model.min_values is not None:
+        gefunden = True
+        print("-" * 40)
+        print("  kNN-Erklaerung:")
+        print("-" * 40)
+        model.erklaere_knn(werte, label_namen=LABEL_NAMEN)
+        warte_auf_enter()
 
     # --- Decision Tree erklaeren ---
-    print("-" * 40)
-    print("  Decision-Tree-Erklaerung:")
-    print("-" * 40)
-    model.erklaere_tree(werte, feature_namen=KANAL_NAMEN,
-                        label_namen=LABEL_NAMEN)
-    warte_auf_enter()
+    if model.tree:
+        gefunden = True
+        print("-" * 40)
+        print("  Decision-Tree-Erklaerung:")
+        print("-" * 40)
+        model.erklaere_tree(werte, feature_namen=KANAL_NAMEN,
+                            label_namen=LABEL_NAMEN)
+        warte_auf_enter()
 
     # --- Neuronales Netz Wahrscheinlichkeiten ---
-    print("-" * 40)
-    print("  Neuronales Netz - Wahrscheinlichkeiten:")
-    print("-" * 40)
-    probs = model.predict_netz_wahrscheinlichkeiten(werte)
-    for label_val, prob in sorted(probs.items(),
-                                   key=lambda x: x[1], reverse=True):
-        name = LABEL_NAMEN.get(label_val, "?")
-        balken = "#" * int(prob * 30)
-        print("  {:12s}: {:5.1f}% {}".format(name, prob * 100, balken))
+    if model._nn_w1 is not None:
+        gefunden = True
+        print("-" * 40)
+        print("  Neuronales Netz - Wahrscheinlichkeiten:")
+        print("-" * 40)
+        probs = model.predict_netz_wahrscheinlichkeiten(werte)
+        for label_val, prob in sorted(probs.items(),
+                                       key=lambda x: x[1], reverse=True):
+            name = LABEL_NAMEN.get(label_val, "?")
+            balken = "#" * int(prob * 30)
+            print("  {:12s}: {:5.1f}% {}".format(name, prob * 100, balken))
+
+    if not gefunden:
+        print("Kein Algorithmus trainiert! Bitte zuerst Phase 3 ausfuehren.")
 
     print()
     print("Phase 4 abgeschlossen!")
@@ -375,81 +386,78 @@ def phase_4():
 # =============================================================
 
 def phase_5():
-    if model is None:
-        print("Bitte zuerst Phase 2 und 3 ausfuehren!")
-        return
+    global model
 
     print()
     print("=" * 50)
     print("  PHASE 5: Modell speichern und laden")
     print("=" * 50)
     print()
-    print("  a - Decision Tree speichern/laden")
-    print("  b - Random Forest speichern/laden")
-    print("  c - Neuronales Netz speichern/laden")
+    print("  a - Modell speichern")
+    print("  b - Modell laden")
     print()
 
     try:
-        wahl = input("Welches Modell? (a-c): ").strip().lower()
+        wahl_aktion = input("Was moechtest du tun? (a/b): ").strip().lower()
     except (KeyboardInterrupt, EOFError):
         print("Abgebrochen.")
         return
 
-    if wahl == 'a':
-        model_type = 'tree'
-        model_name = 'Decision Tree'
-        predict_fn_orig = model.predict_tree
-    elif wahl == 'b':
-        model_type = 'forest'
-        model_name = 'Random Forest'
-        predict_fn_orig = model.predict_forest
-    elif wahl == 'c':
-        model_type = 'netz'
-        model_name = 'Neuronales Netz'
-        predict_fn_orig = model.predict_netz
+    if wahl_aktion == 'a':
+        # --- Speichern ---
+        if model is None:
+            print("Bitte zuerst Phase 2 und 3 ausfuehren!")
+            return
+
+        print()
+        print("  a - Decision Tree speichern")
+        print("  b - Random Forest speichern")
+        print("  c - Neuronales Netz speichern")
+        print()
+
+        try:
+            wahl = input("Welches Modell speichern? (a-c): ").strip().lower()
+        except (KeyboardInterrupt, EOFError):
+            print("Abgebrochen.")
+            return
+
+        if wahl == 'a':
+            model_type = 'tree'
+            model_name = 'Decision Tree'
+        elif wahl == 'b':
+            model_type = 'forest'
+            model_name = 'Random Forest'
+        elif wahl == 'c':
+            model_type = 'netz'
+            model_name = 'Neuronales Netz'
+        else:
+            print("Ungueltige Eingabe.")
+            return
+
+        print()
+        print("Speichere {}-Modell als '{}'...".format(model_name, MODELL_DATEI))
+        model.save_model(MODELL_DATEI, model_type=model_type)
+        print("Gespeichert!")
+
+    elif wahl_aktion == 'b':
+        # --- Laden ---
+        print()
+        print("Lade Modell aus '{}'...".format(MODELL_DATEI))
+        neues_modell = MLearn()
+        try:
+            typ = neues_modell.load_model(MODELL_DATEI)
+        except Exception as e:
+            print("FEHLER beim Laden: {}".format(e))
+            print("Existiert die Datei '{}'?".format(MODELL_DATEI))
+            return
+
+        model = neues_modell
+        print("Modell geladen! Typ: '{}'".format(typ))
+        print("Du kannst jetzt Phase 4 oder 6 verwenden.")
+
     else:
         print("Ungueltige Eingabe.")
         return
-
-    print()
-    print("Speichere {}-Modell als '{}'...".format(model_name, MODELL_DATEI))
-    model.save_model(MODELL_DATEI, model_type=model_type)
-    print("Gespeichert!")
-
-    print()
-    print("Erstelle neues MLearn-Objekt und lade Modell...")
-    model2 = MLearn()
-    typ = model2.load_model(MODELL_DATEI)
-    print("Modelltyp geladen: '{}'".format(typ))
-
-    predict_fns_laden = {
-        'tree':   model2.predict_tree,
-        'forest': model2.predict_forest,
-        'netz':   model2.predict_netz,
-    }
-    predict_fn_laden = predict_fns_laden[model_type]
-
-    print()
-    print("Vergleiche: Original vs. geladenes Modell...")
-    print("Halte einen Legostein vor den Sensor.")
-    warte_auf_enter("Stein bereithalten, dann Enter druecken...")
-
-    werte = sensor.messen_roh_liste()
-    print("Messwerte: {}".format(werte))
-
-    ergebnis_original = predict_fn_orig(werte)
-    ergebnis_geladen = predict_fn_laden(werte)
-
-    name_orig = LABEL_NAMEN.get(ergebnis_original, "?")
-    name_laden = LABEL_NAMEN.get(ergebnis_geladen, "?")
-
-    print("  Original-Modell:  {} ({})".format(name_orig, ergebnis_original))
-    print("  Geladenes Modell: {} ({})".format(name_laden, ergebnis_geladen))
-
-    if ergebnis_original == ergebnis_geladen:
-        print("  -> Ergebnisse identisch. Speichern/Laden OK!")
-    else:
-        print("  -> ACHTUNG: Ergebnisse unterschiedlich!")
 
     print()
     print("Phase 5 abgeschlossen!")
@@ -483,10 +491,12 @@ def phase_6():
     }
     predict_fn = predict_fns.get(typ, live_model.predict_forest)
 
+    taster = Pin(TASTER_PIN, Pin.IN, Pin.PULL_UP)
+
     print()
     print("Halte nacheinander verschiedene Legosteine")
     print("vor den Sensor. Die erkannte Farbe wird angezeigt.")
-    print("Beende mit Ctrl+C.")
+    print("Beende mit Taster oder Ctrl+C.")
     print()
     print("{:>6s}  {:>12s}  {}".format("Nr.", "Erkannt", "Messwerte"))
     print("-" * 50)
@@ -494,6 +504,9 @@ def phase_6():
     nr = 0
     try:
         while True:
+            if taster.value() == 0:
+                time.sleep(0.2)
+                break
             werte = sensor.messen_roh_liste()
             label = predict_fn(werte)
             name = LABEL_NAMEN.get(label, "Unbekannt")
