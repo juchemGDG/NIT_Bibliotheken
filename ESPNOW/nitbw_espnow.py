@@ -34,6 +34,7 @@ class ESPNow:
         self._esp = None
         self._peers = set()
         self._on_receive = None
+        self._subscriptions = {}
         self.init()
 
     # ================================================================
@@ -208,6 +209,130 @@ class ESPNow:
         return self.send(self.BROADCAST_MAC, data)
 
     # ================================================================
+    # MQTT-light (brokerlos) ueber ESP-NOW
+    # ================================================================
+
+    def publish(self, mac, topic, payload=None, subtopic=None):
+        """
+        Sendet eine MQTT-aehnliche Publish-Nachricht an einen Peer.
+
+        Args:
+            mac: Ziel-MAC als String
+            topic: Haupttopic, z. B. "schule"
+            payload: JSON-serialisierbare Nutzdaten
+            subtopic: Optionales Untertopic, z. B. "raum1/temp"
+        """
+        full_topic = self._build_topic(topic, subtopic)
+        paket = {
+            "_proto": "nitbw-mqtt-lite",
+            "topic": full_topic,
+            "payload": payload,
+        }
+        return self.send_json(mac, paket)
+
+    def broadcast_publish(self, topic, payload=None, subtopic=None):
+        """Sendet eine MQTT-aehnliche Publish-Nachricht als Broadcast."""
+        return self.publish(self.BROADCAST_MAC, topic, payload=payload, subtopic=subtopic)
+
+    def subscribe(self, topic, callback=None, subtopic=None):
+        """
+        Abonniert ein Topic oder Topic-Filter.
+
+        Unterstuetzt einfache Wildcards:
+        - "+" fuer genau eine Topic-Ebene
+        - "#" am Ende fuer alle folgenden Ebenen
+
+        Args:
+            topic: Topic oder Topic-Filter
+            callback: Optionaler Handler callback(topic, payload, sender_mac)
+            subtopic: Optionales Untertopic
+        """
+        full_topic = self._build_topic(topic, subtopic)
+
+        if callback is not None and not callable(callback):
+            raise TypeError("callback muss eine Funktion sein")
+
+        if full_topic not in self._subscriptions:
+            self._subscriptions[full_topic] = []
+
+        if callback is not None and callback not in self._subscriptions[full_topic]:
+            self._subscriptions[full_topic].append(callback)
+
+        return full_topic
+
+    def submit(self, topic, callback=None, subtopic=None):
+        """
+        Alias fuer subscribe().
+
+        Hinweis:
+        Manche Unterrichtsmaterialien verwenden "submit" statt "subscribe".
+        """
+        return self.subscribe(topic, callback=callback, subtopic=subtopic)
+
+    def unsubscribe(self, topic, callback=None, subtopic=None):
+        """
+        Entfernt ein Topic-Abo oder einen einzelnen Callback.
+
+        Returns:
+            True, wenn etwas entfernt wurde, sonst False.
+        """
+        full_topic = self._build_topic(topic, subtopic)
+        callbacks = self._subscriptions.get(full_topic)
+        if callbacks is None:
+            return False
+
+        if callback is None:
+            del self._subscriptions[full_topic]
+            return True
+
+        if callback in callbacks:
+            callbacks.remove(callback)
+            if not callbacks:
+                del self._subscriptions[full_topic]
+            return True
+
+        return False
+
+    def receive_publish(self, timeout_ms=None):
+        """
+        Empfaengt genau eine MQTT-aehnliche Publish-Nachricht.
+
+        Returns:
+            (topic, payload, sender_mac) oder (None, None, None)
+        """
+        data, sender = self._receive_dict(timeout_ms=timeout_ms)
+        if not self._is_publish_message(data):
+            return None, None, None
+
+        return data["topic"], data.get("payload"), sender
+
+    def poll_subscriptions(self, timeout_ms=0):
+        """
+        Empfaengt eine Nachricht und verteilt sie an passende Abos.
+
+        Callback-Signatur:
+            callback(topic, payload, sender_mac)
+
+        Returns:
+            (topic, payload, sender_mac) bei passender Publish-Nachricht,
+            sonst (None, None, None)
+        """
+        topic, payload, sender = self.receive_publish(timeout_ms=timeout_ms)
+        if topic is None:
+            return None, None, None
+
+        for topic_filter, callbacks in self._subscriptions.items():
+            if self._topic_matches(topic_filter, topic):
+                for callback in callbacks:
+                    callback(topic, payload, sender)
+
+        return topic, payload, sender
+
+    def list_subscriptions(self):
+        """Gibt alle aktuell abonnierten Topic-Filter zurueck."""
+        return sorted(list(self._subscriptions.keys()))
+
+    # ================================================================
     # Hilfsfunktionen
     # ================================================================
 
@@ -227,6 +352,76 @@ class ESPNow:
     def _ensure_peer(self, mac_str):
         if mac_str not in self._peers:
             self.add_peer(mac_str)
+
+    def _receive_dict(self, timeout_ms=None):
+        msg, sender = self.receive(timeout_ms=timeout_ms, decode=True)
+        if msg is None:
+            return None, None
+
+        if isinstance(msg, dict):
+            return msg, sender
+
+        if not isinstance(msg, str):
+            return None, sender
+
+        try:
+            data = json.loads(msg)
+        except ValueError:
+            return None, sender
+
+        if isinstance(data, dict):
+            return data, sender
+
+        return None, sender
+
+    def _build_topic(self, topic, subtopic=None):
+        if not isinstance(topic, str):
+            raise TypeError("topic muss ein String sein")
+
+        teile = [topic]
+        if subtopic is not None:
+            if not isinstance(subtopic, str):
+                raise TypeError("subtopic muss ein String sein")
+            teile.append(subtopic)
+
+        full_topic = "/".join(teile)
+        full_topic = full_topic.strip().strip("/")
+        if not full_topic:
+            raise ValueError("topic darf nicht leer sein")
+
+        return full_topic
+
+    def _is_publish_message(self, data):
+        if not isinstance(data, dict):
+            return False
+        if data.get("_proto") != "nitbw-mqtt-lite":
+            return False
+        topic = data.get("topic")
+        if not isinstance(topic, str) or not topic:
+            return False
+        return True
+
+    def _topic_matches(self, topic_filter, topic):
+        filter_levels = topic_filter.split("/")
+        topic_levels = topic.split("/")
+
+        i = 0
+        while i < len(filter_levels):
+            f_level = filter_levels[i]
+
+            if f_level == "#":
+                return i == len(filter_levels) - 1
+
+            if i >= len(topic_levels):
+                return False
+
+            t_level = topic_levels[i]
+            if f_level != "+" and f_level != t_level:
+                return False
+
+            i += 1
+
+        return i == len(topic_levels)
 
     def _to_bytes(self, data):
         if isinstance(data, bytes):

@@ -17,6 +17,8 @@ automatische Peer-Verwaltung, komfortables Senden/Empfangen von Text und JSON.
 - `receive()` mit optionalem Timeout
 - JSON-Komfortfunktionen: `send_json()` und `receive_json()`
 - Broadcast ueber `broadcast(data)`
+- MQTT-aehnliches, brokerloses Pub/Sub: `publish()`, `subscribe()`, `submit()`
+- Topics und Untertopics per `topic/subtopic`
 - Optionaler Callback-Empfang mit `on_receive(callback)` (firmware-abhaengig)
 - Hilfsfunktion `scan_peers()` fuer bereits bekannte/verwendete Peers
 - Sprechende Fehlermeldungen bei MAC- oder Sendeproblemen
@@ -109,6 +111,14 @@ ESPNow()
 | `receive_json(timeout_ms=None)` | tuple | `(dict_msg, sender_mac)` oder `(None, None)` |
 | `on_receive(callback)` | bool | Registriert IRQ-Callback (nur falls Firmware dies unterstuetzt) |
 | `broadcast(data)` | bool | Sendet an `FF:FF:FF:FF:FF:FF` |
+| `publish(mac, topic, payload=None, subtopic=None)` | bool | Sendet MQTT-aehnliche Publish-Nachricht |
+| `broadcast_publish(topic, payload=None, subtopic=None)` | bool | Sendet Publish als Broadcast |
+| `subscribe(topic, callback=None, subtopic=None)` | str | Abonniert Topic/Filter, optional mit Callback |
+| `submit(topic, callback=None, subtopic=None)` | str | Alias fuer `subscribe()` |
+| `unsubscribe(topic, callback=None, subtopic=None)` | bool | Entfernt Abo/Callback |
+| `receive_publish(timeout_ms=None)` | tuple | `(topic, payload, sender_mac)` oder `(None, None, None)` |
+| `poll_subscriptions(timeout_ms=0)` | tuple | Empfaengt und verteilt an passende Subscriptions |
+| `list_subscriptions()` | list | Liste aller Topic-Filter |
 
 #### Hilfsfunktionen
 
@@ -120,6 +130,10 @@ ESPNow()
 
 - `beispiel_espnow.py`: Textnachrichten zwischen zwei ESP32 senden/empfangen
 - `beispiel_espnow_json.py`: Dictionaries per JSON austauschen
+- `beispiel_espnow_mqtt_lite.py`: Brokerloses publish/subscribe mit Topics
+- `beispiel_espnow_broker.py`: ESP32 als Mini-Broker mit Topic-Verteilung
+- `beispiel_espnow_broker_client_bidirektional.py`: Bidirektionaler Client fuer den Mini-Broker
+
 
 ### Zusatzbeispiele
 
@@ -163,6 +177,53 @@ esp = ESPNow()
 esp.send("AA:BB:CC:DD:EE:FF", "Test")
 print("Bekannte Peers:", esp.scan_peers())
 ```
+
+5. MQTT-light: publish + subscribe (ohne Broker):
+
+```python
+from nitbw_espnow import ESPNow
+
+esp = ESPNow()
+partner = "AA:BB:CC:DD:EE:FF"
+
+# Topic-Filter abonnieren
+esp.subscribe("sensoren/+/temperatur")
+
+# Nachricht senden
+esp.publish(
+    partner,
+    topic="sensoren",
+    subtopic="raum1/temperatur",
+    payload={"wert": 22.4, "einheit": "C"}
+)
+
+# Nachricht empfangen (aktiv pollen)
+topic, payload, sender = esp.poll_subscriptions(timeout_ms=300)
+if topic is not None:
+    print("Von {} auf {}: {}".format(sender, topic, payload))
+```
+
+### MQTT-light Hinweise
+
+- Es gibt keinen Broker: Nachrichten werden direkt an einen Peer oder Broadcast gesendet.
+- Keine Benutzerverwaltung oder Authentifizierung eingebaut.
+- Topic-Wildcards in `subscribe()`:
+- `+` fuer genau eine Ebene, z. B. `sensoren/+/temperatur`
+- `#` nur am Ende, z. B. `sensoren/#`
+
+### ESP32 als Broker (optional)
+
+Wenn ein ESP32 als Verteiler arbeiten soll, kannst du das mit den neuen Beispielen nutzen:
+
+- `beispiel_espnow_broker.py` auf dem Broker-ESP32 starten
+- `beispiel_espnow_broker_client_bidirektional.py` auf jedem Client starten
+
+Hinweis: Bei bidirektionaler Kommunikation ist jeder Client gleichzeitig Sender und Empfaenger.
+Darum enthaelt das Client-Beispiel sowohl publish als auch receive-Logik in einer Datei.
+
+Fuer den Einsatz mit vielen Gruppen (z. B. 10 Clients) ist das ebenfalls geeignet:
+Im Client-Beispiel reicht pro Geraet ein eigener `CLIENT_NAME`.
+Mit `SUBSCRIBE_MODE = "all"` empfaengt jeder Client automatisch alle anderen Gruppen.
 
 ## Lizenz
 
