@@ -22,6 +22,7 @@ Konventionen fuer neue Bibliotheken sind in [`.github/copilot-instructions.md`](
 | Ultraschall | `ULTRASCHALL/nitbw_ultraschall.py` | `ULTRASCHALL/beispiel_ultraschall.py`, `ULTRASCHALL/beispiel_ultraschall_einparkhilfe.py` | 1.0.0 |
 | TOF | `TOF/nitbw_tof.py` | `TOF/beispiel_tof.py`, `TOF/beispiel_tof_modi.py` | 1.0.0 |
 | TCS3200 | `TCS3200/nitbw_tcs3200.py` | `TCS3200/beispiel_tcs3200.py`, `TCS3200/beispiel_tcs3200_rgb.py` | 1.0.0 |
+| ESPNOW | `ESPNOW/nitbw_espnow.py` | `ESPNOW/beispiel_espnow.py`, `ESPNOW/beispiel_espnow_json.py` | 1.0.0 |
 | NITON | `NITON/nitbw_niton.py` | `NITON/beispiel_niton.py`, `NITON/beispiel_niton_listen.py` | 2.1.1 |
 | TOENE | `TOENE/nitbw_toene.py` | `TOENE/beispiel_toene.py`, `TOENE/beispiel_toene_lied.py` | 1.2.0 |
 
@@ -112,6 +113,7 @@ print(model.predict_forest([52, 70, 151, 214, 210, 140]))
 - `ULTRASCHALL/README.md`
 - `TOF/README.md`
 - `TCS3200/README.md`
+- `ESPNOW/README.md`
 - `AS7262/README.md`
 - `NITON/README.md`
 - `TOENE/README.md`

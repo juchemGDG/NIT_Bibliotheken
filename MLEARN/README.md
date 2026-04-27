@@ -119,6 +119,7 @@ print(pred)
 |---|---|---|
 | `train_knn()` / `predict_knn(features)` | float | k-Naechste-Nachbarn |
 | `train_logreg()` / `predict_logreg(features)` | int | Logistische Regression (0/1) |
+| `predict_logreg_proba(features)` | float | Wahrscheinlichkeit fuer Klasse 1 |
 | `train_tree(max_depth)` / `predict_tree(features)` | float | Decision Tree |
 | `train_forest(n_trees, max_depth)` / `predict_forest(features)` | float | Random Forest (1-7 Baeume) |
 | `train_netz(hidden, epochs, lr)` / `predict_netz(features)` | float | Neuronales Netz |
@@ -138,6 +139,7 @@ print(pred)
 |---|---|---|
 | `daten_info(feature_namen)` | - | Datensatz-Ueberblick: Klassen, Wertebereiche |
 | `erklaere_knn(features, label_namen)` | float | kNN-Entscheidung nachvollziehen |
+| `erklaere_logreg(features, feature_namen)` | int | LogReg-Beitraege und Wahrscheinlichkeit anzeigen |
 | `erklaere_tree(features, feature_namen, label_namen)` | float | Entscheidungspfad im Baum anzeigen |
 | `feature_wichtigkeit(feature_namen, tree)` | dict | Splits pro Feature zaehlen |
 | `vergleiche(test_data, label_namen)` | dict | Alle Modelle vergleichen |
@@ -299,6 +301,7 @@ model.train_tree(max_depth=3)
 
 Praktische Hinweise / Fehlersuche:
 - `Keine Trainingsdaten vorhanden.`: CSV-Pfad / Format pruefen.
+- LogReg nutzt nur binaere Labels (0/1): fuer Multi-Class z.B. One-vs-Rest bilden.
 - Schlechte Accuracy: Mehr Daten sammeln oder max_depth/k anpassen.
 - Speicherengpaesse: Datensatz verkleinern, max_depth reduzieren, weniger Forest-Baeume.
 - Netz konvergiert nicht: Lernrate senken (z.B. 0.001) oder mehr Epochen.

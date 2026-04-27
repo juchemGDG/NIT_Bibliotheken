@@ -38,8 +38,44 @@ _PERIOD_US = 20000  # 1 / 50 Hz = 20 ms = 20 000 us
 # ============================================================================
 
 def _us_zu_duty(puls_us):
-    """Rechnet eine Pulsbreite (Mikrosekunden) in einen PWM-Duty-Wert um."""
+    """Rechnet eine Pulsbreite (Mikrosekunden) in einen legacy-Duty-Wert um."""
     return int(puls_us / _PERIOD_US * _DUTY_MAX)
+
+
+def _setze_pwm_puls(pwm, puls_us):
+    """
+    Setzt eine Pulsbreite robust ueber verschiedene MicroPython-PWM-APIs.
+
+    Prioritaet:
+    1) duty_ns (praezise, unabhaengig von Duty-Skala)
+    2) duty_u16
+    3) duty (legacy, 0-1023)
+    """
+    puls_ns = int(puls_us * 1000)
+
+    if hasattr(pwm, "duty_ns"):
+        pwm.duty_ns(puls_ns)
+        return
+
+    if hasattr(pwm, "duty_u16"):
+        duty_u16 = int(puls_us / _PERIOD_US * 65535)
+        pwm.duty_u16(duty_u16)
+        return
+
+    pwm.duty(_us_zu_duty(puls_us))
+
+
+def _pwm_aus(pwm):
+    """Schaltet das PWM-Signal firmware-kompatibel aus."""
+    if hasattr(pwm, "duty_ns"):
+        pwm.duty_ns(0)
+        return
+
+    if hasattr(pwm, "duty_u16"):
+        pwm.duty_u16(0)
+        return
+
+    pwm.duty(0)
 
 
 # ============================================================================
@@ -97,7 +133,7 @@ class Servo:
         # Linear interpolieren: Winkel -> Pulsbreite
         anteil = (grad - self._winkel_min) / (self._winkel_max - self._winkel_min)
         puls_us = self._puls_min + anteil * (self._puls_max - self._puls_min)
-        self._pwm.duty(_us_zu_duty(puls_us))
+        _setze_pwm_puls(self._pwm, puls_us)
         self._aktueller_winkel = grad
 
     def mitte(self):
@@ -120,7 +156,7 @@ class Servo:
         Args:
             puls_us: Pulsbreite in Mikrosekunden (z. B. 500-2500)
         """
-        self._pwm.duty(_us_zu_duty(puls_us))
+        _setze_pwm_puls(self._pwm, puls_us)
 
     def lese_winkel(self):
         """
@@ -133,7 +169,7 @@ class Servo:
 
     def aus(self):
         """Schaltet das PWM-Signal ab (Servo wird stromlos)."""
-        self._pwm.duty(0)
+        _pwm_aus(self._pwm)
 
     def deinit(self):
         """Gibt den PWM-Pin wieder frei."""
@@ -232,11 +268,11 @@ class ContinuousServo:
             # Gegen Uhrzeigersinn: Puls von Mitte Richtung Minimum
             puls_us = self._puls_mitte - anteil * (self._puls_mitte - self._puls_min)
 
-        self._pwm.duty(_us_zu_duty(puls_us))
+        _setze_pwm_puls(self._pwm, puls_us)
 
     def stopp(self):
         """Haelt den Servo an (setzt Puls auf den Stillstandspunkt)."""
-        self._pwm.duty(_us_zu_duty(self._puls_mitte))
+        _setze_pwm_puls(self._pwm, self._puls_mitte)
 
     def puls(self, puls_us):
         """
@@ -245,11 +281,11 @@ class ContinuousServo:
         Args:
             puls_us: Pulsbreite in Mikrosekunden
         """
-        self._pwm.duty(_us_zu_duty(puls_us))
+        _setze_pwm_puls(self._pwm, puls_us)
 
     def aus(self):
         """Schaltet das PWM-Signal ab (Servo wird stromlos)."""
-        self._pwm.duty(0)
+        _pwm_aus(self._pwm)
 
     def deinit(self):
         """Gibt den PWM-Pin wieder frei."""

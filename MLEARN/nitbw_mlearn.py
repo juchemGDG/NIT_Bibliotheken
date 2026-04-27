@@ -489,9 +489,22 @@ class MLearn:
         In jeder Epoche wird jeder Datenpunkt einmal durchlaufen
         und die Gewichte ein kleines Stueck in die richtige Richtung
         angepasst (gesteuert durch die Lernrate lr).
+
+        Hinweis:
+        Logistische Regression in dieser Bibliothek ist binaer,
+        die Labels muessen also 0 oder 1 sein.
         """
         if not self.data:
             raise ValueError("Keine Trainingsdaten vorhanden.")
+
+        erlaubte_labels = set([0.0, 1.0])
+        labels = set([label for _, label in self.data])
+        if not labels.issubset(erlaubte_labels):
+            raise ValueError(
+                "Logistische Regression braucht binaere Labels (0/1). Gefunden: {}".format(
+                    sorted(list(labels))
+                )
+            )
 
         n_features = len(self.data[0][0])
         self.weights = [0.0] * (n_features + 1)
@@ -500,14 +513,33 @@ class MLearn:
             for features, label in self.data:
                 z = self.weights[0]
                 for i in range(n_features):
-                    z += self.weights[i+1] * features[i]
+                    z += self.weights[i + 1] * features[i]
 
                 y_hat = self.sigmoid(z)
                 error = label - y_hat
 
                 self.weights[0] += self.lr * error
                 for i in range(n_features):
-                    self.weights[i+1] += self.lr * error * features[i]
+                    self.weights[i + 1] += self.lr * error * features[i]
+
+    def predict_logreg_proba(self, features):
+        """
+        Gibt die Wahrscheinlichkeit fuer Klasse 1 zurueck.
+
+        Args:
+            features: Feature-Liste
+
+        Returns:
+            float: Wahrscheinlichkeit fuer Klasse 1 (0.0 bis 1.0)
+        """
+        if self.weights is None:
+            raise ValueError("Bitte zuerst train_logreg() ausfuehren.")
+
+        z = self.weights[0]
+        for i in range(len(features)):
+            z += self.weights[i + 1] * features[i]
+
+        return self.sigmoid(z)
 
     def predict_logreg(self, features):
         """
@@ -519,15 +551,61 @@ class MLearn:
         Returns:
             int: 0 oder 1
         """
+        y_hat = self.predict_logreg_proba(features)
+        return 1 if y_hat >= 0.5 else 0
+
+    def erklaere_logreg(self, features, feature_namen=None):
+        """
+        Erklaert die Vorhersage der logistischen Regression.
+
+        Zeigt Bias, Feature-Beitraege, Gesamtsumme z,
+        Wahrscheinlichkeit fuer Klasse 1 und finale Klasse.
+
+        Args:
+            features: Feature-Liste des Datenpunkts
+            feature_namen: Optionale Liste mit Feature-Namen
+
+        Returns:
+            int: Vorhergesagte Klasse (0 oder 1)
+        """
         if self.weights is None:
             raise ValueError("Bitte zuerst train_logreg() ausfuehren.")
 
-        z = self.weights[0]
-        for i in range(len(features)):
-            z += self.weights[i+1] * features[i]
+        if len(features) + 1 != len(self.weights):
+            raise ValueError("Feature-Anzahl passt nicht zum trainierten Modell.")
 
-        y_hat = self.sigmoid(z)
-        return 1 if y_hat >= 0.5 else 0
+        print("\n=== LogReg-Erklaerung ===")
+        print("Eingabe: {}".format(features))
+
+        z = self.weights[0]
+        print("Bias (w0): {:.6f}".format(self.weights[0]))
+
+        for i, x in enumerate(features):
+            beitrag = self.weights[i + 1] * x
+            z += beitrag
+            fname = "feature[{}]".format(i)
+            if feature_namen and i < len(feature_namen):
+                fname = "{}(feature[{}])".format(feature_namen[i], i)
+            print(
+                "  {:>18s}: w={:>10.6f}, x={:>10.4f}, w*x={:>11.6f}".format(
+                    fname,
+                    self.weights[i + 1],
+                    x,
+                    beitrag,
+                )
+            )
+
+        p1 = self.sigmoid(z)
+        p0 = 1.0 - p1
+        klasse = 1 if p1 >= 0.5 else 0
+
+        print("z = {:.6f}".format(z))
+        print("P(Klasse 1) = {:.4f}".format(p1))
+        print("P(Klasse 0) = {:.4f}".format(p0))
+        print("Vorhersage  = {}".format(klasse))
+        print()
+
+        return klasse
 
     # =============================================================
     # DECISION TREE (Entscheidungsbaum, Multi-Class)
@@ -1245,6 +1323,14 @@ class MLearn:
             except Exception:
                 pass
 
+        # Logistische Regression – pruefe ob Gewichte vorhanden
+        if self.weights is not None:
+            try:
+                acc = self.accuracy(test_data, self.predict_logreg)
+                ergebnisse["Logistische Regression"] = acc
+            except Exception:
+                pass
+
         # Decision Tree – pruefe ob Baum trainiert wurde
         if self.tree:
             try:
@@ -1306,7 +1392,7 @@ class MLearn:
 
         Args:
             filename:   Dateipfad (z.B. 'modell.json')
-            model_type: 'tree', 'forest', 'knn' oder 'netz'
+            model_type: 'tree', 'forest', 'knn', 'logreg' oder 'netz'
         """
         modell = {"type": model_type}
 
@@ -1319,6 +1405,8 @@ class MLearn:
             modell["k"] = self.k
             modell["min_values"] = self.min_values
             modell["max_values"] = self.max_values
+        elif model_type == 'logreg':
+            modell["weights"] = self.weights
         elif model_type == 'netz':
             modell["w1"] = self._nn_w1
             modell["b1"] = self._nn_b1
@@ -1328,7 +1416,7 @@ class MLearn:
             modell["nn_min"] = self._nn_min
             modell["nn_max"] = self._nn_max
         else:
-            raise ValueError("model_type muss 'tree', 'forest', 'knn' oder 'netz' sein.")
+            raise ValueError("model_type muss 'tree', 'forest', 'knn', 'logreg' oder 'netz' sein.")
 
         with open(filename, 'w') as f:
             json.dump(modell, f)
@@ -1344,7 +1432,7 @@ class MLearn:
             filename: Dateipfad (z.B. 'modell.json')
 
         Returns:
-            str: Typ des geladenen Modells ('tree', 'forest', 'knn', 'netz')
+            str: Typ des geladenen Modells ('tree', 'forest', 'knn', 'logreg', 'netz')
         """
         with open(filename, 'r') as f:
             modell = json.load(f)
@@ -1360,6 +1448,8 @@ class MLearn:
             self.k = modell["k"]
             self.min_values = modell["min_values"]
             self.max_values = modell["max_values"]
+        elif model_type == 'logreg':
+            self.weights = modell["weights"]
         elif model_type == 'netz':
             self._nn_w1 = modell["w1"]
             self._nn_b1 = modell["b1"]
