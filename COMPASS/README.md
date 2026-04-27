@@ -86,14 +86,12 @@ print(compass.read_heading_tilt_compensated_direction())
 
 ### Klasse `Compass`
 
-Konstruktor: `Compass(i2c, addr=0x0D, scl=22, sda=21, use_accel=True, accel_addr=None)`
+Konstruktor: `Compass(i2c, addr=0x0D, use_accel=True, accel_addr=None)`
 
 | Parameter    | Typ           | Standard | Beschreibung                                       |
 |---|---|---|---|
-| `i2c`        | `I2C / None`  | -        | I2C-Objekt oder `None` fuer Auto-Erzeugung         |
+| `i2c`        | `I2C`         | -        | Initialisiertes I2C-Objekt                         |
 | `addr`       | `int`         | `0x0D`   | I2C-Adresse des Magnetfeldsensors                  |
-| `scl`        | `int`         | `22`     | SCL-Pin (nur wenn `i2c=None`)                      |
-| `sda`        | `int`         | `21`     | SDA-Pin (nur wenn `i2c=None`)                      |
 | `use_accel`  | `bool`        | `True`   | ADXL345 automatisch suchen und initialisieren      |
 | `accel_addr` | `int / None`  | `None`   | ADXL345-Adresse; `None` = Standard `0x53`          |
 

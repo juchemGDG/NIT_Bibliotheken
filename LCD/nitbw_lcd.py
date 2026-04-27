@@ -2,7 +2,7 @@
 NIT Bibliothek: LCD - HD44780 LCD-Display ueber PCF8574 I2C-Adapter
 Fuer ESP32 mit MicroPython
 
-Version:    1.1.0
+Version:    1.2.0
 Autor:      Volker Rust / nitbw
 Lizenz:     MIT (siehe LICENSE)
 Erstellt:   2026-03
@@ -11,7 +11,7 @@ Unterstuetzt 16x2 und 20x4 LCD-Displays im 4-Bit-Modus.
 Die Implementierung ist eigenstaendig und benoetigt keine externen Bibliotheken.
 """
 
-from machine import I2C, Pin
+from machine import I2C
 import time
 
 
@@ -250,31 +250,30 @@ class LCD:
         '♥': (7, (0x00,0x0A,0x1F,0x1F,0x1F,0x0E,0x04,0x00)),  # ♥ Herz – änderbar!
     }
 
-    def __init__(self, scl=22, sda=21, addr=0x27, zeilen=4, spalten=20,
-                 enabled=True, i2c_id=0, begruessung=True):
+    def __init__(self, i2c, addr=0x27, zeilen=4, spalten=20,
+                 enabled=True, begruessung=True):
         """
         Initialisiert das LCD-Display.
 
         Args:
-            scl: SCL-Pin (Standard: GPIO 22)
-            sda: SDA-Pin (Standard: GPIO 21)
+            i2c: Initialisiertes I2C-Bus-Objekt
             addr: I2C-Adresse des PCF8574 (Standard: 0x27, oft auch 0x3F)
             zeilen: Anzahl der Zeilen (Standard: 4)
             spalten: Anzahl der Spalten (Standard: 20)
             enabled: True = Display aktiv, False = alle Ausgaben unterdrückt
-            i2c_id: I2C-Bus-ID (Standard: 0)
             begruessung: True zeigt beim Start eine Begrüßung (Standard: True)
         """
         self.spalten = spalten
         self.zeilen = zeilen
         self.enabled = enabled
+        self.i2c = i2c
 
         if not self.enabled:
             self.treiber = None
             return
 
-        # I2C-Bus initialisieren
-        self.i2c = I2C(i2c_id, scl=Pin(scl), sda=Pin(sda), freq=400000)
+        if not isinstance(self.i2c, I2C):
+            raise TypeError("i2c muss ein initialisiertes machine.I2C Objekt sein")
 
         # LCD-Treiber initialisieren
         self.treiber = LCDTreiber(self.i2c, addr, spalten, zeilen)
@@ -663,7 +662,9 @@ class LCD:
 # ============================================================================
 # Beispiel-Verwendung:
 #
-# lcd = LCD(scl=22, sda=21, addr=0x27)
+# from machine import I2C, Pin
+# i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=400000)
+# lcd = LCD(i2c, addr=0x27)
 #
 # lcd.print("Hallo Welt!", 0, 0)
 # lcd.print("Temperatur:", 0, 1)

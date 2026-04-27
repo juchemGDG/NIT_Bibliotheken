@@ -22,6 +22,7 @@ Bedienung:
 """
 
 from nitbw_rtc import RTC
+from machine import I2C, Pin
 import time
 
 # Fuer LCD-Display folgende Zeile verwenden:
@@ -38,14 +39,15 @@ PIN_ENTER  = 27
 
 
 # --- Initialisierung RTC ---
-rtc = RTC(chip='DS3231', scl=22, sda=21)
+i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=100000)
+rtc = RTC(chip='DS3231', i2c=i2c)
 
 # --- Initialisierung Display ---
 # LCD 20x4 (I2C-Adresse wird automatisch erkannt)
-display = LCD(scl=22, sda=21, zeilen=4, spalten=20)
+display = LCD(i2c, zeilen=4, spalten=20)
 
 # Fuer OLED stattdessen:
-# display = OLED(scl=22, sda=21)
+# display = OLED(i2c)
 
 
 # --- Aktuelle Zeit anzeigen ---

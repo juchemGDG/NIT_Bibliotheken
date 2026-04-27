@@ -2,8 +2,8 @@
 NIT Bibliothek: OLED - Grafiktreiber fuer SSD1306 und SH1106 Displays
 Fuer ESP32 mit MicroPython
 
-Version:    1.1.0
-Autor:      Stephan Juchem / nitbw
+Version:    1.2.0
+Autor:      Stephan Juchem, Volker Rust / nitbw
 Lizenz:     MIT (siehe LICENSE)
 Erstellt:   2026-03
 
@@ -11,7 +11,7 @@ Umfangreiche Grafikfunktionen inkl. Text, Linien, Kreise und Balkenanzeigen.
 Treiber und Fontdaten sind direkt im Modul enthalten, ohne externe Abhaengigkeiten.
 """
 
-from machine import I2C, Pin
+from machine import I2C
 import time
 import framebuf
 
@@ -292,8 +292,8 @@ class OLED:
     Stellt eine einfache API fuer Text- und Grafikdarstellung auf OLED bereit.
 
     Unterstuetzte Hardware:
-    - SSD1306 OLED 128x64
-    - SH1106 OLED 128x64
+    - SSD1306 OLED 128x64 und 128x32
+    - SH1106 OLED 128x64 und 128x32
 
     Schnittstelle: I2C
     """
@@ -367,31 +367,35 @@ class OLED:
         b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
     )
     
-    def __init__(self, scl=22, sda=21, chip='ssd1306', enabled=True, i2c_id=0, addr=0x3c, logo=True):
+    def __init__(self, i2c, chip='ssd1306', enabled=True, addr=0x3c, logo=True, width=128, height=64):
         """
         Initialisiert das OLED Display
         
         Args:
-            scl: SCL Pin (Standard: GPIO 22)
-            sda: SDA Pin (Standard: GPIO 21)
+            i2c: Initialisiertes I2C Bus Objekt (machine.I2C)
             chip: 'ssd1306' oder 'sh1106' (Standard: 'ssd1306')
             enabled: True um Display zu aktivieren, False um zu deaktivieren
-            i2c_id: I2C Bus ID (Standard: 0)
             addr: I2C Adresse des Displays (Standard: 0x3c)
             logo: True zeigt das Startlogo, False deaktiviert es (Standard: True)
+            width: Displaybreite in Pixeln (Standard: 128)
+            height: Displayhoehe in Pixeln (Standard: 64)
         """
-        self.width = 128
-        self.height = 64
+        self.width = int(width)
+        self.height = int(height)
         self.enabled = enabled
         self.chip = chip.lower()
         self.logo = bool(logo)
+        self.i2c = i2c
+
+        if (self.width, self.height) not in ((128, 64), (128, 32)):
+            raise ValueError('Unterstuetzte Aufloesungen: 128x64 oder 128x32')
         
         if not self.enabled:
             self.display = None
             return
-        
-        # I2C initialisieren
-        self.i2c = I2C(i2c_id, scl=Pin(scl), sda=Pin(sda), freq=400000)
+
+        if not isinstance(self.i2c, I2C):
+            raise TypeError("i2c muss ein initialisiertes machine.I2C Objekt sein")
         
         # Display-Treiber initialisieren
         if self.chip == 'sh1106':
@@ -794,7 +798,9 @@ class OLED:
 
 
 # Beispiel-Verwendung:
-# oled = OLED(scl=22, sda=21, chip='ssd1306', enabled=True)
+# from machine import I2C, Pin
+# i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=400000)
+# oled = OLED(i2c, chip='ssd1306', enabled=True)
 # 
 # # Alle Zeichenbefehle schreiben in den Puffer
 # oled.print("Hello World", 0, 0)  # mit Systemschriftart (Serif-Standard)
@@ -812,4 +818,4 @@ class OLED:
 # oled.show()  # Alles auf einmal anzeigen
 #
 # Für SH1106 Display:
-# oled = OLED(scl=22, sda=21, chip='sh1106', enabled=True)
+# oled = OLED(i2c, chip='sh1106', enabled=True)

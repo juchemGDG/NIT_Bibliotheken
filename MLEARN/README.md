@@ -170,6 +170,8 @@ print(pred)
 
 ## Beispiele
 
+### Beispieldateien
+
 Dateien im Ordner:
 - `beispiel_mlearn.py` -- Grundbeispiel: Alle Algorithmen mit CSV-Daten
 - `beispiel_mlearn_didaktik.py` -- Didaktische Funktionen: Daten verstehen, Modelle erklaeren
@@ -178,6 +180,27 @@ Dateien im Ordner:
 - `beispiel_mlearn_phase2_training.py` -- Training und Vergleich aller Modelle
 - `beispiel_mlearn_phase3_erkennung.py` -- Live-Erkennung mit gespeichertem Modell
 - `beispiel_mlearn_komplett.py` -- Kompletter Workflow in einem Programm
+- `test_mlearn_lego.py` -- **Kompletter ML-Workflow mit AS7262**: Daten sammeln (Phase 1),
+  Laden und Ueberblick (Phase 2), Training und Bewertung (Phase 3), didaktische
+  Erklaerungen (Phase 4), Speichern und Laden (Phase 5), Live-Erkennung (Phase 6).
+  Standard: 12 verschiedene Legostein-Farben (konfigurierbar).
+
+### Testdatensaetze und vorgefertigte Modelle
+
+Fuer schnelle Tests ohne zusätzliche Datensammlung:
+
+**`farben_lego.csv`**
+  - 12 Labels (Legostein-Farben von Weiss bis Dunkelbraun)
+  - 20 Messungen pro Label = 240 Datenpunkte gesamt
+  - 6 Features vom AS7262-Sensor: violett, blau, gruen, gelb, orange, rot
+  - Kann direkt mit `model.load_csv('farben_lego.csv', target=6)` geladen werden
+  - Ideal zum Trainieren und Testen aller ML-Algorithmen
+
+**`lego_modell.json`**
+  - Vortrainiertes neuronales Netz (12 Ausgangsneuronen fuer 12 Farben)
+  - Erstellt durch Trainieren auf `farben_lego.csv` mit `test_mlearn_lego.py`
+  - Kann direkt geladen werden: `model.load_model('lego_modell.json')`
+  - Beispiel fuer Modell-Persistenz und Live-Erkennung
 
 ### Snippet 1: Decision Tree mit Bewertung
 ```python
@@ -251,10 +274,12 @@ print(model2.predict_forest([52, 70, 151, 214, 210, 140]))
 
 ### Snippet 9: Daten direkt vom Sensor uebergeben (ohne CSV)
 ```python
+from machine import I2C, Pin
 from nitbw_as7262 import AS7262
 from nitbw_mlearn import MLearn
 
-sensor = AS7262(sda=21, scl=22, led=True)
+i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=400000)
+sensor = AS7262(i2c, led='messen')
 model = MLearn()
 
 # 10 Messungen als Label 1 hinzufuegen

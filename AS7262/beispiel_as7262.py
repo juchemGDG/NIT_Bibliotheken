@@ -5,12 +5,18 @@ Hardware: AS7262 am ESP32 ueber I2C
 """
 
 from nitbw_as7262 import AS7262
+from machine import I2C, Pin
 import time
 
 
 # --- Initialisierung ---
-# Sensor auf Standard-Pins (SDA=21, SCL=22), LED eingeschaltet
-sensor = AS7262(sda=21, scl=22, led=True)
+# I2C initialisieren
+# ESP32 Standard: SCL=22, SDA=21
+i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=400000)
+
+# Sensor initialisieren
+# LED wird nur waehrend der Messung eingeschaltet
+sensor = AS7262(i2c, led='messen')
 
 
 # --- Hauptprogramm ---
@@ -23,6 +29,8 @@ while True:
 
     # Dominanter Kanal
     print("Staerkster Kanal:", sensor.dominanter_kanal())
+    # Beispiel Override: LED ganz aus fuer diese Messung
+    print("Staerkster Kanal ohne LED:", sensor.dominanter_kanal(led='aus'))
     print("Temperatur: {} C".format(sensor.temperatur()))
     print("-" * 30)
     time.sleep(1)

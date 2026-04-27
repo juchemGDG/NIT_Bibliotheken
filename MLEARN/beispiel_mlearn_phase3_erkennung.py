@@ -6,11 +6,13 @@ Hardware: ESP32 + AS7262 (oder TCS3200) + gespeichertes Modell
 
 from nitbw_mlearn import MLearn
 from nitbw_as7262 import AS7262
+from machine import I2C, Pin
 import time
 
 
 # --- Sensor initialisieren ---
-sensor = AS7262(sda=21, scl=22, led=True)
+i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=400000)
+sensor = AS7262(i2c, led='messen')
 
 # --- Modell laden ---
 model = MLearn()

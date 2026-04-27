@@ -72,34 +72,33 @@ importiert werden.
 ## Schnellstart
 
 ```python
+from machine import I2C, Pin
 from nitbw_rtc import RTC
 
-rtc = RTC(chip='DS3231', scl=22, sda=21)
+i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=100000)
+rtc = RTC(chip='DS3231', i2c=i2c)
 print(rtc.toString("DD.MM.YYYY hh:mm:ss"))
 ```
 
 Hinweis:
 
 - Falls die RTC nicht reagiert, I2C-Adresse pruefen (Standard: `0x68`).
-- Fuer DS1307: `RTC(chip='DS1307')` verwenden.
+- Fuer DS1307: `RTC(chip='DS1307', i2c=i2c)` verwenden.
 - Die Batterie am Modul sorgt dafuer, dass die Zeit auch ohne Strom erhalten bleibt.
 
 ## API-Referenz
 
 ### Factory-Funktion
 
-- `RTC(chip='DS3231', i2c=None, addr=0x68, scl=22, sda=21, i2c_id=0)`
+- `RTC(i2c, chip='DS3231', addr=0x68)`
 
 Parameterueberblick:
 
 | Parameter | Typ | Standard | Beschreibung |
 |---|---|---|---|
 | `chip` | str | `'DS3231'` | Chip-Typ: `'DS1307'` oder `'DS3231'` |
-| `i2c` | I2C | `None` | Optionales I2C-Objekt (wird sonst erstellt) |
+| `i2c` | I2C | - | Initialisiertes I2C-Objekt |
 | `addr` | int | `0x68` | I2C-Adresse des RTC-Moduls |
-| `scl` | int | 22 | GPIO-Pin fuer SCL |
-| `sda` | int | 21 | GPIO-Pin fuer SDA |
-| `i2c_id` | int | 0 | I2C-Bus-ID |
 
 ### Gemeinsame Methoden (DS1307 und DS3231)
 
@@ -173,9 +172,11 @@ Parameterueberblick:
 
 1. Verschiedene Formatierungen:
 ```python
+from machine import I2C, Pin
 from nitbw_rtc import RTC
 
-rtc = RTC(chip='DS3231', scl=22, sda=21)
+i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=100000)
+rtc = RTC(chip='DS3231', i2c=i2c)
 print(rtc.toString("DD.MM.YYYY hh:mm:ss"))   # 10.03.2026 14:30:00
 print(rtc.toString("DDD, DD. MMM YYYY"))      # Tue, 10. Mar 2026
 print(rtc.toString("hh:mm"))                  # 14:30
@@ -187,7 +188,8 @@ print(rtc.toString("YYYY-MM-DD"))             # 2026-03-10
 from nitbw_rtc import RTC
 import time
 
-rtc = RTC(chip='DS3231', scl=22, sda=21)
+i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=100000)
+rtc = RTC(chip='DS3231', i2c=i2c)
 while True:
     print("{} - {:.1f} C".format(
         rtc.toString("hh:mm:ss"),
@@ -199,9 +201,11 @@ while True:
 ```python
 from nitbw_rtc import RTC
 from nitbw_lcd import LCD
+from machine import I2C, Pin
 
-rtc = RTC(chip='DS3231', scl=22, sda=21)
-lcd = LCD(scl=22, sda=21, addr=0x27)
+i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=100000)
+rtc = RTC(chip='DS3231', i2c=i2c)
+lcd = LCD(i2c, addr=0x27)
 
 # GPIO 4 = Stell-Taster, GPIO 12/13/14 = Hoch/Runter/Enter
 rtc.pruefeStellPin(pin_nr=4, display=lcd,
@@ -212,7 +216,8 @@ rtc.pruefeStellPin(pin_nr=4, display=lcd,
 ```python
 from nitbw_rtc import RTC
 
-rtc = RTC(chip='DS3231', scl=22, sda=21)
+i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=100000)
+rtc = RTC(chip='DS3231', i2c=i2c)
 print("Schaltjahr:", rtc.istSchaltjahr())
 print("Tage im Feb 2024:", rtc.tageImMonat(2, 2024))
 ```
@@ -221,7 +226,8 @@ print("Tage im Feb 2024:", rtc.tageImMonat(2, 2024))
 ```python
 from nitbw_rtc import RTC
 
-rtc = RTC(chip='DS3231', scl=22, sda=21)
+i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=100000)
+rtc = RTC(chip='DS3231', i2c=i2c)
 print("Sekunden seit 2000:", rtc.unixZeit())
 print("Zeit-Tuple:", rtc.zeitTuple())
 ```
@@ -230,7 +236,8 @@ print("Zeit-Tuple:", rtc.zeitTuple())
 ```python
 from nitbw_rtc import RTC
 
-rtc = RTC(chip='DS1307', scl=22, sda=21)
+i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=100000)
+rtc = RTC(chip='DS1307', i2c=i2c)
 if not rtc.laueft():
     print("Oszillator steht - wird gestartet")
     rtc.start()
@@ -240,7 +247,8 @@ if not rtc.laueft():
 ```python
 from nitbw_rtc import RTC
 
-rtc = RTC(chip='DS3231', scl=22, sda=21)
+i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=100000)
+rtc = RTC(chip='DS3231', i2c=i2c)
 rtc.alarm1(stunden=14, minuten=30, sekunden=0)
 print("Alarm auf 14:30 gesetzt")
 a1, a2 = rtc.alarmStatus()

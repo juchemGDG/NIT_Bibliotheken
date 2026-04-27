@@ -5,11 +5,17 @@ Hardware: AS7262 am ESP32 ueber I2C
 """
 
 from nitbw_as7262 import AS7262
+from machine import I2C, Pin
 import time
 
 
 # --- Initialisierung ---
-sensor = AS7262(sda=21, scl=22, led=True, integrationszeit=100, gain=2)
+# I2C initialisieren
+# ESP32 Standard: SCL=22, SDA=21
+i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=400000)
+
+# LED wird nur waehrend der Messung eingeschaltet
+sensor = AS7262(i2c, led='messen', integrationszeit=100, gain=2)
 
 
 # --- Hauptprogramm ---

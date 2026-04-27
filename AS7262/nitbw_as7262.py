@@ -2,7 +2,7 @@
 NIT Bibliothek: AS7262 - 6-Kanal Spektralsensor ueber I2C
 Fuer ESP32 mit MicroPython
 
-Version:    1.0.0
+Version:    2.0.0
 Autor:      Volker Rust / nitbw
 Lizenz:     MIT (siehe LICENSE)
 Erstellt:   2026-03
@@ -12,7 +12,7 @@ Lichtintensitaeten in sechs Spektralkanaelen (Violett bis Rot).
 Die Kommunikation erfolgt ueber ein virtuelles Registerinterface.
 """
 
-from machine import I2C, Pin
+from machine import I2C
 import time
 
 
@@ -68,25 +68,24 @@ class AS7262:
     # Initialisierung
     # ---------------------------------------------------------------
 
-    def __init__(self, i2c=None, sda=21, scl=22, freq=400000, led=False,
+    def __init__(self, i2c, led='messen',
                  integrationszeit=50, gain=1):
         """
         Initialisiert den AS7262 Spektralsensor.
 
         Args:
-            i2c:    Bestehendes I2C-Objekt. Falls None, wird eines erstellt.
-            sda:    GPIO-Pin fuer SDA (Standard: 21)
-            scl:    GPIO-Pin fuer SCL (Standard: 22)
-            freq:   I2C-Taktrate in Hz
-            led:    Bei True wird die eingebaute LED eingeschaltet.
+            i2c:    Initialisiertes I2C-Objekt.
+            led:    LED-Standardmodus fuer Messungen:
+                - 'messen' = LED nur waehrend Messung (Standard)
+                - 'aus' = LED bleibt aus
+                - 'an' = LED bleibt dauerhaft ein
             integrationszeit: Messzeit in Einheiten von 2.8 ms (1-255).
                               Hoehere Werte = laengere Messung, weniger Rauschen.
             gain:   Verstaerkung: 0 = 1x, 1 = 3.7x, 2 = 16x, 3 = 64x
         """
-        if i2c is not None:
-            self._i2c = i2c
-        else:
-            self._i2c = I2C(0, sda=Pin(sda), scl=Pin(scl), freq=freq)
+        if not isinstance(i2c, I2C):
+            raise TypeError("i2c muss ein initialisiertes machine.I2C Objekt sein")
+        self._i2c = i2c
 
         # Pruefen, ob der Sensor antwortet
         geraete = self._i2c.scan()
@@ -97,7 +96,11 @@ class AS7262:
         # Sensor konfigurieren
         self.set_integrationszeit(integrationszeit)
         self.set_gain(gain)
-        self.set_led(led)
+        self._led_standardmodus = self._normalisiere_led_modus(led)
+        if self._led_standardmodus == 'an':
+            self.set_led(True)
+        else:
+            self.set_led(False)
 
     # ---------------------------------------------------------------
     # Virtuelles Register-Interface
@@ -200,6 +203,10 @@ class AS7262:
         Die LED beleuchtet das Messobjekt und verbessert die Ergebnisse
         bei kurzen Abstaenden deutlich.
 
+        Diese Methode ist fuer manuelle Steuerung (Dauerlicht)
+        gedacht. Fuer LED nur waehrend Messungen den Konstruktor mit
+        led='messen' verwenden.
+
         Args:
             an: True = LED ein, False = LED aus
         """
@@ -209,6 +216,55 @@ class AS7262:
         else:
             led_reg &= ~0x08
         self._virt_write(self._LED_CONTROL, led_reg)
+
+    def _normalisiere_led_modus(self, led):
+        """
+        Vereinheitlicht LED-Modi auf: 'messen', 'an', 'aus'.
+
+        Erlaubt bewusst auch bool fuer Rueckwaertskompatibilitaet.
+        """
+        if led is True:
+            return 'messen'
+        if led is False:
+            return 'aus'
+
+        if isinstance(led, str):
+            modus = led.lower()
+            if modus in ('messen', 'an', 'aus'):
+                return modus
+
+        raise ValueError("LED-Modus muss 'messen', 'an' oder 'aus' sein")
+
+    def _mess_led_start(self, led=None):
+        """
+        Aktiviert den gewuenschten LED-Modus fuer eine Messung.
+
+        Returns:
+            int|None: Vorheriger LED-Registerwert fuer Restore,
+                      oder None wenn kein Restore noetig ist.
+        """
+        if led is None:
+            modus = self._led_standardmodus
+        else:
+            modus = self._normalisiere_led_modus(led)
+
+        if modus == 'aus':
+            self.set_led(False)
+            return None
+
+        if modus == 'an':
+            self.set_led(True)
+            return None
+
+        led_reg_vorher = self._virt_read(self._LED_CONTROL)
+        if (led_reg_vorher & 0x08) == 0:
+            self._virt_write(self._LED_CONTROL, led_reg_vorher | 0x08)
+        return led_reg_vorher
+
+    def _mess_led_ende(self, led_reg_vorher):
+        """Stellt den LED-Zustand nach einer Messung wieder her."""
+        if led_reg_vorher is not None:
+            self._virt_write(self._LED_CONTROL, led_reg_vorher)
 
     def temperatur(self):
         """
@@ -256,39 +312,50 @@ class AS7262:
         low = self._virt_read(reg_high + 1)
         return (high << 8) | low
 
-    def messen_roh(self):
+    def messen_roh(self, led=None):
         """
         Fuehrt eine Messung durch und gibt die 6 Rohwerte zurueck.
 
         Die Rohwerte sind 16-Bit-Zahlen ohne physikalische Einheit.
         Gut geeignet fuer ML-Training, da sie den vollen Wertebereich nutzen.
 
+        Args:
+            led: Optionaler LED-Modus nur fuer diese Messung:
+                 'messen', 'aus' oder 'an'.
+
         Returns:
             dict: Rohwerte fuer 'violett', 'blau', 'gruen',
                   'gelb', 'orange', 'rot'
         """
-        self._starte_messung()
-        self._warte_auf_daten()
+        led_reg_vorher = self._mess_led_start(led)
+        try:
+            self._starte_messung()
+            self._warte_auf_daten()
 
-        register = [self._RAW_V_HIGH, self._RAW_B_HIGH, self._RAW_G_HIGH,
-                     self._RAW_Y_HIGH, self._RAW_O_HIGH, self._RAW_R_HIGH]
+            register = [self._RAW_V_HIGH, self._RAW_B_HIGH, self._RAW_G_HIGH,
+                         self._RAW_Y_HIGH, self._RAW_O_HIGH, self._RAW_R_HIGH]
 
-        ergebnis = {}
-        for name, reg in zip(self.KANALNAMEN, register):
-            ergebnis[name] = self._lies_rohkanal(reg)
-        return ergebnis
+            ergebnis = {}
+            for name, reg in zip(self.KANALNAMEN, register):
+                ergebnis[name] = self._lies_rohkanal(reg)
+            return ergebnis
+        finally:
+            self._mess_led_ende(led_reg_vorher)
 
-    def messen_roh_liste(self):
+    def messen_roh_liste(self, led=None):
         """
         Wie messen_roh(), gibt aber eine Liste statt dict zurueck.
 
         Reihenfolge: [violett, blau, gruen, gelb, orange, rot]
         Praktisch fuer ML-Algorithmen, die Feature-Listen erwarten.
 
+        Args:
+            led: Optionaler LED-Modus nur fuer diese Messung.
+
         Returns:
             list: 6 Rohwerte als Integer-Liste
         """
-        roh = self.messen_roh()
+        roh = self.messen_roh(led=led)
         return [roh[name] for name in self.KANALNAMEN]
 
     # ---------------------------------------------------------------
@@ -305,7 +372,7 @@ class AS7262:
         raw = bytes([self._virt_read(reg + i) for i in range(4)])
         return struct.unpack('>f', raw)[0]
 
-    def messen_kalibriert(self):
+    def messen_kalibriert(self, led=None):
         """
         Fuehrt eine Messung durch und gibt die kalibrierten Float-Werte zurueck.
 
@@ -313,42 +380,56 @@ class AS7262:
         Einheit uW/cm2. Sie sind besser vergleichbar zwischen verschiedenen
         Sensoren, aber fuer ML-Training reichen oft die Rohwerte.
 
+        Args:
+            led: Optionaler LED-Modus nur fuer diese Messung:
+                 'messen', 'aus' oder 'an'.
+
         Returns:
             dict: Kalibrierte Werte fuer alle 6 Kanaele
         """
-        self._starte_messung()
-        self._warte_auf_daten()
+        led_reg_vorher = self._mess_led_start(led)
+        try:
+            self._starte_messung()
+            self._warte_auf_daten()
 
-        register = [self._CAL_V, self._CAL_B, self._CAL_G,
-                     self._CAL_Y, self._CAL_O, self._CAL_R]
+            register = [self._CAL_V, self._CAL_B, self._CAL_G,
+                         self._CAL_Y, self._CAL_O, self._CAL_R]
 
-        ergebnis = {}
-        for name, reg in zip(self.KANALNAMEN, register):
-            ergebnis[name] = round(self._lies_float(reg), 2)
-        return ergebnis
+            ergebnis = {}
+            for name, reg in zip(self.KANALNAMEN, register):
+                ergebnis[name] = round(self._lies_float(reg), 2)
+            return ergebnis
+        finally:
+            self._mess_led_ende(led_reg_vorher)
 
-    def messen_kalibriert_liste(self):
+    def messen_kalibriert_liste(self, led=None):
         """
         Wie messen_kalibriert(), gibt aber eine Liste zurueck.
 
         Reihenfolge: [violett, blau, gruen, gelb, orange, rot]
 
+        Args:
+            led: Optionaler LED-Modus nur fuer diese Messung.
+
         Returns:
             list: 6 kalibrierte Float-Werte
         """
-        kal = self.messen_kalibriert()
+        kal = self.messen_kalibriert(led=led)
         return [kal[name] for name in self.KANALNAMEN]
 
     # ---------------------------------------------------------------
     # Hilfsfunktionen
     # ---------------------------------------------------------------
 
-    def dominanter_kanal(self):
+    def dominanter_kanal(self, led=None):
         """
         Gibt den Kanal mit dem hoechsten Rohwert zurueck.
+
+        Args:
+            led: Optionaler LED-Modus nur fuer diese Messung.
 
         Returns:
             str: Kanalname ('violett', 'blau', 'gruen', 'gelb', 'orange', 'rot')
         """
-        roh = self.messen_roh()
+        roh = self.messen_roh(led=led)
         return max(roh, key=roh.get)

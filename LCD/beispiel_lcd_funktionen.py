@@ -5,11 +5,13 @@ Hardware: HD44780 LCD mit PCF8574 I2C-Adapter (20x4)
 """
 
 from nitbw_lcd import LCD
+from machine import I2C, Pin
 import time
 import random
 
 # --- Initialisierung ---
-lcd = LCD(scl=22, sda=21, addr=0x27)
+i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=400000)
+lcd = LCD(i2c, addr=0x27)
 
 
 # --- Hauptprogramm ---

@@ -4,17 +4,20 @@ Konsolidierte Bibliothekssammlung fuer den NIT-Unterricht mit einheitlichem Name
 - Bibliotheken: `nitbw_<name>.py`
 - Beispiele: `beispiel_<thema>.py`
 
+Konventionen fuer neue Bibliotheken sind in [`.github/copilot-instructions.md`](.github/copilot-instructions.md) dokumentiert.
+
 ## Verfuegbare Bibliotheken
 
 | Bibliothek | Moduldatei | Beispiele (Auswahl) | Version |
 |---|---|---|---|
-| LCD | `LCD/nitbw_lcd.py` | `LCD/beispiel_lcd.py`, `LCD/beispiel_lcd_funktionen.py` | 1.1.0 |
-| OLED | `OLED/nitbw_oled.py` | `OLED/beispiel_oled_schnellstart.py`, `OLED/beispiel_oled.py` | 1.1.0 |
+| LCD | `LCD/nitbw_lcd.py` | `LCD/beispiel_lcd.py`, `LCD/beispiel_lcd_funktionen.py` | 1.2.0 |
+| OLED | `OLED/nitbw_oled.py` | `OLED/beispiel_oled_schnellstart.py`, `OLED/beispiel_oled.py` | 1.2.0 |
 | BME280 | `BME280/nitbw_bme280.py` | `BME280/beispiel_bme280.py` | 1.1.0 |
-| COMPASS | `COMPASS/nitbw_compass.py` | `COMPASS/beispiel_compass.py`, `COMPASS/beispiel_compass_rotation.py` | 1.1.0 |
-| MLEARN | `MLEARN/nitbw_mlearn.py` | `MLEARN/beispiel_mlearn.py` | 1.1.0 |
-| AS7262 | `AS7262/nitbw_as7262.py` | `AS7262/beispiel_as7262.py`, `AS7262/beispiel_as7262_kalibriert.py` | 1.0.0 |
-| RTC | `RTC/nitbw_rtc.py` | `RTC/beispiel_rtc.py`, `RTC/beispiel_rtc_komplett.py` | 1.1.0 |
+| DS18B20 | `DS18B20/nitbw_ds18b20.py` | `DS18B20/beispiel_ds18b20.py`, `DS18B20/beispiel_ds18b20_mehrere.py` | 1.0.0 |
+| COMPASS | `COMPASS/nitbw_compass.py` | `COMPASS/beispiel_compass.py`, `COMPASS/beispiel_compass_rotation.py` | 1.2.0 |
+| MLEARN | `MLEARN/nitbw_mlearn.py` | `MLEARN/beispiel_mlearn.py` | 2.2.0 |
+| AS7262 | `AS7262/nitbw_as7262.py` | `AS7262/beispiel_as7262.py`, `AS7262/beispiel_as7262_kalibriert.py` | 2.0.0 |
+| RTC | `RTC/nitbw_rtc.py` | `RTC/beispiel_rtc.py`, `RTC/beispiel_rtc_komplett.py` | 1.2.0 |
 | Servo | `Servo/nitbw_servo.py` | `Servo/beispiel_servo.py`, `Servo/beispiel_servo_continuous.py` | 1.1.0 |
 | Ultraschall | `ULTRASCHALL/nitbw_ultraschall.py` | `ULTRASCHALL/beispiel_ultraschall.py`, `ULTRASCHALL/beispiel_ultraschall_einparkhilfe.py` | 1.0.0 |
 | TOF | `TOF/nitbw_tof.py` | `TOF/beispiel_tof.py`, `TOF/beispiel_tof_modi.py` | 1.0.0 |
@@ -27,15 +30,19 @@ Konsolidierte Bibliothekssammlung fuer den NIT-Unterricht mit einheitlichem Name
 
 ```python
 # Beispiel LCD
+from machine import I2C, Pin
 from nitbw_lcd import LCD
-lcd = LCD(scl=22, sda=21, addr=0x27)
+i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=400000)
+lcd = LCD(i2c, addr=0x27)
 lcd.print('Hallo NIT', 0, 0)
 ```
 
 ```python
 # Beispiel OLED
+from machine import I2C, Pin
 from nitbw_oled import OLED
-oled = OLED(scl=22, sda=21, chip='ssd1306')
+i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=400000)
+oled = OLED(i2c, chip='ssd1306')
 oled.print('Hello', 0, 0)
 oled.show()
 ```
@@ -50,6 +57,14 @@ print(sensor.read_all())
 ```
 
 ```python
+# Beispiel DS18B20
+from machine import Pin
+from nitbw_ds18b20 import DS18B20
+sensor = DS18B20(Pin(4))
+print("Temperatur: {:.2f} °C".format(sensor.messen()))
+```
+
+```python
 # Beispiel TCS3200
 from nitbw_tcs3200 import TCS3200
 sensor = TCS3200(out=27, s2=14, s3=12, s0=26, s1=25)
@@ -59,8 +74,10 @@ print(sensor.dominante_farbe())
 
 ```python
 # Beispiel AS7262
+from machine import I2C, Pin
 from nitbw_as7262 import AS7262
-sensor = AS7262(sda=21, scl=22, led=True)
+i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=400000)
+sensor = AS7262(i2c)
 print(sensor.messen_roh())
 ```
 
@@ -87,6 +104,7 @@ print(model.predict_forest([52, 70, 151, 214, 210, 140]))
 - `LCD/README.md`
 - `OLED/README.md`
 - `BME280/README.md`
+- `DS18B20/README.md`
 - `COMPASS/README.md`
 - `MLEARN/README.md`
 - `MLEARN2/README.md`

@@ -5,12 +5,14 @@ Hardware: HD44780 LCD mit PCF8574 I2C-Adapter
 """
 
 from nitbw_lcd import LCD
+from machine import I2C, Pin
 import time
 
 
 # --- Initialisierung ---
 # Bei mehreren Displays muessen unterschiedliche I2C-Adressen verwendet werden.
-lcd = LCD(scl=22, sda=21, addr=0x27)
+i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=400000)
+lcd = LCD(i2c, addr=0x27)
 
 # --- Hauptprogramm ---
 lcd.print("NIT Einheiten", 0, 0)

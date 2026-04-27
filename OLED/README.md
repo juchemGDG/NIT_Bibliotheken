@@ -3,8 +3,10 @@
 ## Beschreibung
 Die Bibliothek `nitbw_oled.py` steuert OLED-Displays mit SSD1306 oder SH1106 ueber I2C an. Neben Textausgabe bietet sie eine umfangreiche Grafik-API mit Linien, Rechtecken, Kreisen und Balkendiagrammen. Alle Zeichenoperationen laufen gepuffert und werden mit `show()` in einem Schritt auf dem Display aktualisiert.
 
+Aktueller Stand: Version 1.2.0
+
 ## Features
-- Unterstuetzung fuer SSD1306 und SH1106 (128x64)
+- Unterstuetzung fuer SSD1306 und SH1106 (128x64 und 128x32)
 - Integrierte Treiberlogik ohne externe Zusatzmodule
 - Zwei Schriftarten: Systemfont und Sans-Font
 - Textausgabe mit Position, Skalierung und Fontwahl
@@ -16,11 +18,13 @@ Die Bibliothek `nitbw_oled.py` steuert OLED-Displays mit SSD1306 oder SH1106 ueb
 - Einfacher Einsatz im Unterricht mit klaren Methoden
 
 ## Hardware
-- OLED 128x64 mit SSD1306 oder SH1106 Controller
+- OLED 128x64 oder 128x32 mit SSD1306 oder SH1106 Controller
 - I2C-Adresse typischerweise `0x3C` (alternativ oft `0x3D`)
 - Versorgung mit 3.3V
 - Hinweise:
   - SH1106-Module brauchen `chip='sh1106'`.
+  - Standard-Aufloesung ist `width=128, height=64`.
+  - Fuer 128x32: `width=128, height=32` setzen.
   - Falsche Adresse ist die haeufigste Fehlerursache.
   - Lange Leitungen koennen zu I2C-Problemen fuehren.
 
@@ -38,10 +42,14 @@ Beispiel ESP32-Standardpins:
 
 ## Schnellstart
 ```python
+from machine import I2C, Pin
 from nitbw_oled import OLED
 
+# I2C initialisieren
+i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=400000)
+
 # Display initialisieren
-oled = OLED(scl=22, sda=21, chip='ssd1306', addr=0x3C)
+oled = OLED(i2c, chip='ssd1306', addr=0x3C)
 
 # Text in den Buffer schreiben
 oled.clear()
@@ -52,17 +60,18 @@ oled.show()
 ```
 
 ## API-Referenz
-Konstruktor: `OLED(scl=22, sda=21, chip='ssd1306', enabled=True, i2c_id=0, addr=0x3c, logo=True)`
+Konstruktor: `OLED(i2c, chip='ssd1306', enabled=True, addr=0x3c, logo=True)`
+Konstruktor: `OLED(i2c, chip='ssd1306', enabled=True, addr=0x3c, logo=True, width=128, height=64)`
 
 | Parameter | Typ | Standard | Beschreibung |
 |---|---|---|---|
-| `scl` | `int` | `22` | SCL-Pin |
-| `sda` | `int` | `21` | SDA-Pin |
+| `i2c` | `machine.I2C` | - | Initialisierter I2C-Bus |
 | `chip` | `str` | `'ssd1306'` | Controller (`ssd1306` oder `sh1106`) |
 | `enabled` | `bool` | `True` | Display ein/aus |
-| `i2c_id` | `int` | `0` | I2C-Busnummer |
 | `addr` | `int` | `0x3c` | I2C-Adresse |
 | `logo` | `bool` | `True` | Startlogo zeigen |
+| `width` | `int` | `128` | Displaybreite in Pixeln |
+| `height` | `int` | `64` | Displayhoehe in Pixeln |
 
 Wichtige Methoden:
 - `print(string, x=0, y=0, font='serif', scale=1, color=1)`
@@ -100,10 +109,18 @@ oled.show()
 
 Snippet 3: SH1106 mit anderer Adresse
 ```python
-oled = OLED(chip='sh1106', addr=0x3D)
+oled = OLED(i2c, chip='sh1106', addr=0x3D)
 ```
 
-Snippet 4: Sans-Font mit Umlauten und Skalierung
+Snippet 4: SSD1306 mit 128x32
+```python
+oled = OLED(chip='ssd1306', width=128, height=32, logo=False)
+oled.clear()
+oled.print('128x32 aktiv', 0, 0)
+oled.show()
+```
+
+Snippet 5: Sans-Font mit Umlauten und Skalierung
 ```python
 oled.clear()
 oled.print("Größe Übung Öl", 0, 0, font='sans')
@@ -111,7 +128,7 @@ oled.print("Doppelt", 0, 16, font='sans', scale=2)
 oled.show()
 ```
 
-Snippet 5: Kreise und Rechtecke kombinieren
+Snippet 6: Kreise und Rechtecke kombinieren
 ```python
 oled.clear()
 oled.draw_rect(0, 0, 60, 40)
@@ -120,7 +137,7 @@ oled.draw_circle(90, 32, 25)
 oled.show()
 ```
 
-Snippet 6: Balkendiagramm fuer Sensordaten
+Snippet 7: Balkendiagramm fuer Sensordaten
 ```python
 oled.clear()
 oled.print("Sensor", 0, 0)
@@ -130,7 +147,7 @@ oled.print(f"{prozent}%", 50, 40, font='sans')
 oled.show()
 ```
 
-Snippet 7: Wert abbilden mit map()
+Snippet 8: Wert abbilden mit map()
 ```python
 adc_wert = 2048
 pixel_x = oled.map(adc_wert, 0, 4095, 0, 127)
@@ -142,6 +159,7 @@ Praktische Hinweise/Fehlersuche:
 - Display bleibt leer: `show()` nach dem Zeichnen aufrufen.
 - Nach `clear()` muss ebenfalls `show()` aufgerufen werden, damit das Display sichtbar geleert wird.
 - Falscher Controller: `chip` auf `ssd1306`/`sh1106` pruefen.
+- Aufloesung falsch: bei 128x32 im Konstruktor `height=32` setzen.
 - I2C-Fehler: `addr` mit `i2c.scan()` verifizieren.
 - Unscharfe Ausgabe bei Umlaute: Sans-Font via `font='sans'` verwenden.
 
