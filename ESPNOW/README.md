@@ -262,13 +262,6 @@ if topic is not None:
 - Topic-Wildcards in `subscribe()`:
 - `+` fuer genau eine Ebene, z. B. `sensoren/+/temperatur`
 
-### Mini-Broker Connect-ID (optional)
-
-- Mit `connect_id(client_id)` kann ein Client sich zunaechst beim Broker anmelden.
-- Der Broker beantwortet dies mit `connack` (`ok`/`reason`).
-- Mit `require_connect=True` im Broker werden `subscribe`/`publish`/`unsubscribe` erst nach erfolgreichem `connect` angenommen.
-- Ohne `require_connect` bleibt das bisherige Verhalten unveraendert.
-- `#` nur am Ende, z. B. `sensoren/#`
 
 ### ESP32 als Broker (optional)
 
@@ -286,6 +279,14 @@ Wenn im Broker `require_connect = True` gesetzt ist, muessen die Clients sich zu
 
 Fuer den schnellen Unterrichtseinsatz ist das bewusst einfach gehalten:
 Der Publisher sendet periodisch auf `10C/zaehler`, der Subscriber abonniert `10C/#` und zeigt eingehende Nutzdaten an.
+
+### Mini-Broker Connect-ID (optional)
+
+- Mit `connect_id(client_id)` kann ein Client sich zunaechst beim Broker anmelden.
+- Der Broker beantwortet dies mit `connack` (`ok`/`reason`).
+- Mit `require_connect=True` im Broker werden `subscribe`/`publish`/`unsubscribe` erst nach erfolgreichem `connect` angenommen.
+- Ohne `require_connect` bleibt das bisherige Verhalten unveraendert.
+- `#` nur am Ende, z. B. `sensoren/#`
 
 ## Lizenz
 
