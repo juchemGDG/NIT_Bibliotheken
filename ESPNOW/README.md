@@ -9,7 +9,7 @@ automatische Peer-Verwaltung, komfortables Senden/Empfangen von Text und JSON.
 
 Fuer den Einsatz als Mini-Broker (Broker + Broker-Clients) gibt es zusaetzlich
 die Datei `nitbw_espnow_mqtt.py`. Diese kapselt die Broker-spezifischen
-Nachrichtentypen (`subscribe`, `publish`, `ack`, `deliver`) und vereinfacht
+Nachrichtentypen (`connect`, `connack`, `subscribe`, `publish`, `ack`, `deliver`) und vereinfacht
 dadurch den Beispielcode deutlich.
 
 ## Features
@@ -143,18 +143,20 @@ ESPNow()
 ### API fuer Mini-Broker-Helfer (`ESPNowMQTT`)
 
 ```python
-ESPNowMQTT(esp, broker_mac=None)
+ESPNowMQTT(esp, broker_mac=None, require_connect=False)
 ```
 
 | Parameter | Typ | Standard | Beschreibung |
 |---|---|---|---|
 | `esp` | ESPNow | - | Initialisiertes ESPNow-Objekt |
 | `broker_mac` | str/None | `None` | MAC des Brokers fuer Client-Betrieb |
+| `require_connect` | bool | `False` | Wenn `True`, akzeptiert der Broker `subscribe`/`publish`/`unsubscribe` erst nach erfolgreichem `connect` |
 
 #### Client-Methoden
 
 | Methode | Rueckgabe | Beschreibung |
 |---|---|---|
+| `connect_id(client_id, timeout_ms=800, max_nachrichten=4)` | tuple | Sendet `connect` an den Broker und wartet auf `connack`; Rueckgabe `(ok, reason, client_id)` |
 | `subscribe(topic_filter)` | bool | Sendet Subscribe an den Broker |
 | `unsubscribe(topic_filter)` | bool | Sendet Unsubscribe an den Broker |
 | `publish(topic, payload)` | bool | Sendet Publish an den Broker |
@@ -167,10 +169,12 @@ ESPNowMQTT(esp, broker_mac=None)
 | Methode | Rueckgabe | Beschreibung |
 |---|---|---|
 | `handle_broker_message(timeout_ms=400)` | bool | Verarbeitet genau eine Broker-Nachricht |
+| `send_connack(sender_mac, ok, reason="ok", client_id=None)` | None | Sendet Verbindungsantwort auf `connect` |
 | `add_subscription(sender_mac, topic_filter)` | None | Merkt Topic-Filter fuer einen Client |
 | `remove_subscription(sender_mac, topic_filter)` | None | Entfernt Topic-Filter fuer einen Client |
 | `forward_publish(sender_mac, topic, payload, exclude_sender=True)` | int | Leitet Publish an passende Subscriber weiter |
 | `send_ack(sender_mac, text)` | None | Sendet ACK-Text an Client |
+| `list_clients()` | list | Liefert aktuelle Zuordnung von `client_id` zu Client-MACs |
 | `topic_matches(topic_filter, topic)` | bool | Prueft Topic-Wildcards (`+`, `#`) |
 
 ## Beispiele
@@ -179,9 +183,8 @@ ESPNowMQTT(esp, broker_mac=None)
 - `beispiel_espnow_json.py`: Dictionaries per JSON austauschen
 - `beispiel_espnow_mqtt_lite.py`: Brokerloses publish/subscribe mit Topics
 - `beispiel_espnow_broker.py`: ESP32 als Mini-Broker mit Topic-Verteilung
-- `beispiel_espnow_broker_client_einfach.py`: Sehr einfacher Broker-Client mit Eingabe `topic: message` und einfachem `sub:`
-- `beispiel_espnow_broker_client_ohne_sub_eingabe.py`: Einsteiger-Variante mit festem Subscribe, danach nur `topic: message`
-- `beispiel_espnow_broker_client_bidirektional.py`: Bidirektionaler Client fuer den Mini-Broker
+- `beispiel_espnow_mqtt_client_subscirbe.py`: Minimaler Subscribe-Client fuer den Mini-Broker mit `connect_id`, Subscribe auf `10C/#` und einfacher Empfangsschleife
+- `beispiel_espnow_mqtt_client_publish.py`: Minimaler Publish-Client fuer den Mini-Broker mit `connect_id` und periodischem Senden auf `10C/zaehler`
 
 
 ### Zusatzbeispiele
@@ -258,6 +261,13 @@ if topic is not None:
 - Keine Benutzerverwaltung oder Authentifizierung eingebaut.
 - Topic-Wildcards in `subscribe()`:
 - `+` fuer genau eine Ebene, z. B. `sensoren/+/temperatur`
+
+### Mini-Broker Connect-ID (optional)
+
+- Mit `connect_id(client_id)` kann ein Client sich zunaechst beim Broker anmelden.
+- Der Broker beantwortet dies mit `connack` (`ok`/`reason`).
+- Mit `require_connect=True` im Broker werden `subscribe`/`publish`/`unsubscribe` erst nach erfolgreichem `connect` angenommen.
+- Ohne `require_connect` bleibt das bisherige Verhalten unveraendert.
 - `#` nur am Ende, z. B. `sensoren/#`
 
 ### ESP32 als Broker (optional)
@@ -268,14 +278,14 @@ Wenn ein ESP32 als Verteiler arbeiten soll, kannst du das mit den neuen Beispiel
 - `nitbw_espnow.py`
 - `nitbw_espnow_mqtt.py`
 - `beispiel_espnow_broker.py` auf dem Broker-ESP32 starten
-- `beispiel_espnow_broker_client_bidirektional.py` auf jedem Client starten
+- `beispiel_espnow_mqtt_client_subscirbe.py` auf dem Empfaenger-ESP32 starten
+- `beispiel_espnow_mqtt_client_publish.py` auf dem Sender-ESP32 starten
 
-Hinweis: Bei bidirektionaler Kommunikation ist jeder Client gleichzeitig Sender und Empfaenger.
-Darum enthaelt das Client-Beispiel sowohl publish als auch receive-Logik in einer Datei.
+Hinweis: Beide Minimalbeispiele nutzen optional `connect_id`.
+Wenn im Broker `require_connect = True` gesetzt ist, muessen die Clients sich zuerst erfolgreich verbinden.
 
-Fuer den Einsatz mit vielen Gruppen (z. B. 10 Clients) ist das ebenfalls geeignet:
-Im Client-Beispiel reicht pro Geraet ein eigener `CLIENT_NAME`.
-Mit `SUBSCRIBE_MODE = "all"` empfaengt jeder Client automatisch alle anderen Gruppen.
+Fuer den schnellen Unterrichtseinsatz ist das bewusst einfach gehalten:
+Der Publisher sendet periodisch auf `10C/zaehler`, der Subscriber abonniert `10C/#` und zeigt eingehende Nutzdaten an.
 
 ## Lizenz
 

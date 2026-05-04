@@ -11,10 +11,12 @@ import time
 
 # --- Initialisierung ---
 esp = ESPNow()
-mqtt = ESPNowMQTT(esp)
+REQUIRE_CONNECT = False
+mqtt = ESPNowMQTT(esp, require_connect=REQUIRE_CONNECT)
 
 print("=== ESPNOW Mini-Broker ===")
 print("Broker-MAC:", esp.get_mac())
+print("Connect erforderlich:", REQUIRE_CONNECT)
 print("Warte auf subscribe/publish von Clients...")
 print()
 
