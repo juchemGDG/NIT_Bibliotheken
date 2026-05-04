@@ -7,6 +7,11 @@ unter MicroPython. Die native API arbeitet mit Bytes-MAC-Adressen und relativ
 viel Boilerplate. `nitbw_espnow.py` glattet diese Kanten: MACs als String,
 automatische Peer-Verwaltung, komfortables Senden/Empfangen von Text und JSON.
 
+Fuer den Einsatz als Mini-Broker (Broker + Broker-Clients) gibt es zusaetzlich
+die Datei `nitbw_espnow_mqtt.py`. Diese kapselt die Broker-spezifischen
+Nachrichtentypen (`subscribe`, `publish`, `ack`, `deliver`) und vereinfacht
+dadurch den Beispielcode deutlich.
+
 ## Features
 
 - Einfache Initialisierung mit `ESPNow()` und `init()`
@@ -52,10 +57,19 @@ Kommunikation: drahtlos per 2.4 GHz (ESP-NOW)
 
 Datei `nitbw_espnow.py` auf den ESP32 kopieren (z. B. nach `/lib` oder `/`).
 
+Wenn du die Broker-Beispiele nutzt, muss zusaetzlich
+`nitbw_espnow_mqtt.py` auf den ESP32 kopiert werden.
+
 Import:
 
 ```python
 from nitbw_espnow import ESPNow
+```
+
+Import fuer Broker-Beispiele:
+
+```python
+from nitbw_espnow_mqtt import ESPNowMQTT
 ```
 
 ## Schnellstart
@@ -132,6 +146,8 @@ ESPNow()
 - `beispiel_espnow_json.py`: Dictionaries per JSON austauschen
 - `beispiel_espnow_mqtt_lite.py`: Brokerloses publish/subscribe mit Topics
 - `beispiel_espnow_broker.py`: ESP32 als Mini-Broker mit Topic-Verteilung
+- `beispiel_espnow_broker_client_einfach.py`: Sehr einfacher Broker-Client mit Eingabe `topic: message` und einfachem `sub:`
+- `beispiel_espnow_broker_client_ohne_sub_eingabe.py`: Einsteiger-Variante mit festem Subscribe, danach nur `topic: message`
 - `beispiel_espnow_broker_client_bidirektional.py`: Bidirektionaler Client fuer den Mini-Broker
 
 
@@ -215,6 +231,9 @@ if topic is not None:
 
 Wenn ein ESP32 als Verteiler arbeiten soll, kannst du das mit den neuen Beispielen nutzen:
 
+- Vorher beide Dateien auf alle beteiligten Geraete kopieren:
+- `nitbw_espnow.py`
+- `nitbw_espnow_mqtt.py`
 - `beispiel_espnow_broker.py` auf dem Broker-ESP32 starten
 - `beispiel_espnow_broker_client_bidirektional.py` auf jedem Client starten
 
