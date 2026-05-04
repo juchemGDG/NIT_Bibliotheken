@@ -25,6 +25,7 @@ Konventionen fuer neue Bibliotheken sind in [`.github/copilot-instructions.md`](
 | ESPNOW | `ESPNOW/nitbw_espnow.py` | `ESPNOW/beispiel_espnow.py`, `ESPNOW/beispiel_espnow_json.py` | 1.0.0 |
 | NITON | `NITON/nitbw_niton.py` | `NITON/beispiel_niton.py`, `NITON/beispiel_niton_listen.py` | 2.1.1 |
 | TOENE | `TOENE/nitbw_toene.py` | `TOENE/beispiel_toene.py`, `TOENE/beispiel_toene_lied.py` | 1.2.0 |
+| STEPPER | `STEPPER/nitbw_stepper.py` | `STEPPER/beispiel_stepper_uln.py`, `STEPPER/beispiel_stepper_dir.py` | 1.0.0 |
 
 ## Schnellstart-Muster
 
@@ -117,6 +118,7 @@ print(model.predict_forest([52, 70, 151, 214, 210, 140]))
 - `AS7262/README.md`
 - `NITON/README.md`
 - `TOENE/README.md`
+- `STEPPER/README.md`
 
 ## Lizenz
 
