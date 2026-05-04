@@ -160,9 +160,9 @@ ESPNowMQTT(esp, broker_mac=None, require_connect=False)
 | `subscribe(topic_filter)` | bool | Sendet Subscribe an den Broker |
 | `unsubscribe(topic_filter)` | bool | Sendet Unsubscribe an den Broker |
 | `publish(topic, payload)` | bool | Sendet Publish an den Broker |
-| `receive(timeout_ms=80, nur_nicht_none=False)` | tuple | `(msg_type, data, sender)` oder `(None, None, None)`; bei `nur_nicht_none=True` wartet die Methode intern bis eine Nachricht vorhanden ist |
-| `zeige_nachrichten(max_nachrichten=8, timeout_ms=80, zeige_fremdprotokoll=False, nur_nicht_none=False)` | None | Zeigt `deliver`/`ack` direkt auf der Konsole; mit `nur_nicht_none=True` wartet die Funktion mindestens auf die erste Nachricht |
-| `zeige_json(max_nachrichten=8, timeout_ms=80, include_sender=False, include_broker_mac=False, zeige_fremdprotokoll=False, nur_nicht_none=False)` | list | Liefert reduzierte `deliver`-JSONs mit `topic` und `payload` (optional `sender`, `broker_mac`); mit `nur_nicht_none=True` wartet die Funktion mindestens auf die erste Nachricht |
+| `receive(timeout_ms=80, nur_nicht_none=False, wartezeit_ms=None)` | tuple | `(msg_type, data, sender)` oder `(None, None, None)`; bei `nur_nicht_none=True` wartet die Methode intern bis eine Nachricht vorhanden ist, optional begrenzt durch `wartezeit_ms` |
+| `zeige_nachrichten(max_nachrichten=8, timeout_ms=80, zeige_fremdprotokoll=False, nur_nicht_none=True, wartezeit_ms=None)` | None | Zeigt `deliver`/`ack` direkt auf der Konsole; standardmaessig wird auf die erste Nachricht gewartet, optional begrenzt durch `wartezeit_ms` |
+| `zeige_json(max_nachrichten=1, timeout_ms=80, include_sender=False, include_broker_mac=False, zeige_fremdprotokoll=False, nur_nicht_none=True, wartezeit_ms=None)` | dict/list/None | Liefert standardmaessig genau eine reduzierte `deliver`-JSON mit `topic` und `payload` (optional `sender`, `broker_mac`); bei `max_nachrichten>1` eine Liste; mit `wartezeit_ms` kann das Warten auf die erste Nachricht begrenzt werden |
 
 #### Broker-Methoden
 

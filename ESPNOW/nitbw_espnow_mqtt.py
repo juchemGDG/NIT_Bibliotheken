@@ -2,7 +2,7 @@
 NIT Bibliothek: ESPNOW MQTT-Helfer fuer Mini-Broker
 Fuer ESP32 mit MicroPython
 
-Version:    1.4.0
+Version:    2.0.0
 Autor:      Stephan Juchem / nitbw
 Lizenz:     MIT (siehe LICENSE)
 Erstellt:   2026-05
@@ -10,6 +10,8 @@ Erstellt:   2026-05
 Ergaenzt nitbw_espnow.py um einfache Broker/Client-Helfer
 fuer das Protokoll "nitbw-mqtt-lite-broker".
 """
+
+import time
 
 
 class ESPNowMQTT:
@@ -102,7 +104,7 @@ class ESPNowMQTT:
 
         return False, "kein connack", None
 
-    def receive(self, timeout_ms=80, nur_nicht_none=False):
+    def receive(self, timeout_ms=80, nur_nicht_none=False, wartezeit_ms=None):
         """
         Empfaengt genau eine Nachricht.
 
@@ -110,15 +112,25 @@ class ESPNowMQTT:
             timeout_ms: Wartezeit pro Empfangsversuch in Millisekunden.
             nur_nicht_none: Wenn True, wird intern weiter gewartet,
                 bis eine Nachricht empfangen wurde.
+            wartezeit_ms: Maximale Gesamtwartezeit in Millisekunden, wenn
+                `nur_nicht_none=True`. `None` bedeutet unbegrenzt warten.
 
         Returns:
             (msg_type, data, sender)
             msg_type ist z. B. "deliver", "ack", "other" oder None.
         """
+        start_ms = None
+        if nur_nicht_none and wartezeit_ms is not None:
+            start_ms = time.ticks_ms()
+
         while True:
             data, sender = self.esp.receive_json(timeout_ms=timeout_ms)
             if data is None:
                 if nur_nicht_none:
+                    if start_ms is not None:
+                        vergangen_ms = time.ticks_diff(time.ticks_ms(), start_ms)
+                        if vergangen_ms >= wartezeit_ms:
+                            return None, None, None
                     continue
                 return None, None, None
 
@@ -132,14 +144,18 @@ class ESPNowMQTT:
         max_nachrichten=8,
         timeout_ms=80,
         zeige_fremdprotokoll=False,
-        nur_nicht_none=False,
+        nur_nicht_none=True,
+        wartezeit_ms=None,
     ):
         """
         Zeigt empfangene Deliver/ACK-Nachrichten direkt auf der Konsole.
 
         Args:
-            nur_nicht_none: Wenn True, wird mindestens auf die erste Nachricht
-                gewartet. Weitere Empfangsversuche laufen mit normalem Timeout.
+            nur_nicht_none: Wenn True, wird standardmaessig mindestens auf die
+                erste Nachricht gewartet.
+            wartezeit_ms: Maximale Gesamtwartezeit in Millisekunden fuer die
+                erste Nachricht. `None` bedeutet unbegrenzt warten.
+                Weitere Empfangsversuche laufen mit normalem Timeout.
         """
         anzahl = 0
         while anzahl < max_nachrichten:
@@ -147,6 +163,7 @@ class ESPNowMQTT:
             msg_type, data, sender = self.receive(
                 timeout_ms=timeout_ms,
                 nur_nicht_none=warte_auf_erste,
+                wartezeit_ms=wartezeit_ms if warte_auf_erste else None,
             )
             if msg_type is None:
                 break
@@ -171,18 +188,19 @@ class ESPNowMQTT:
 
     def zeige_json(
         self,
-        max_nachrichten=8,
+        max_nachrichten=1,
         timeout_ms=80,
         include_sender=False,
         include_broker_mac=False,
         zeige_fremdprotokoll=False,
-        nur_nicht_none=False,
+        nur_nicht_none=True,
+        wartezeit_ms=None,
     ):
         """
         Liefert empfangene Deliver-Nachrichten als reduzierte JSON-Objekte.
 
         Returns:
-            Liste von Dictionaries mit mindestens:
+            Bei `max_nachrichten=1` ein Dictionary mit mindestens:
             - topic
             - payload
 
@@ -190,8 +208,12 @@ class ESPNowMQTT:
             - sender (urspruenglicher Publisher)
             - broker_mac (MAC des Brokers als Sender der Deliver-Nachricht)
 
-            Mit nur_nicht_none=True wird mindestens auf die erste Nachricht
-            gewartet. Weitere Empfangsversuche laufen mit normalem Timeout.
+            Bei `max_nachrichten>1` eine Liste solcher Dictionaries.
+
+            Mit `nur_nicht_none=True` wird standardmaessig mindestens auf die
+            erste Nachricht gewartet. Mit `wartezeit_ms` kann diese Wartezeit
+            begrenzt werden. Weitere Empfangsversuche laufen mit normalem
+            `timeout_ms`.
         """
         nachrichten = []
         anzahl = 0
@@ -201,6 +223,7 @@ class ESPNowMQTT:
             msg_type, data, sender = self.receive(
                 timeout_ms=timeout_ms,
                 nur_nicht_none=warte_auf_erste,
+                wartezeit_ms=wartezeit_ms if warte_auf_erste else None,
             )
             if msg_type is None:
                 break
@@ -224,6 +247,11 @@ class ESPNowMQTT:
                     print("Ignoriere Fremdprotokoll von {}: {}".format(sender, data))
 
             anzahl += 1
+
+        if max_nachrichten == 1:
+            if nachrichten:
+                return nachrichten[0]
+            return None
 
         return nachrichten
 
