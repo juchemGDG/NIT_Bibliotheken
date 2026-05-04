@@ -132,6 +132,8 @@ ESPNow()
 - `beispiel_espnow_json.py`: Dictionaries per JSON austauschen
 - `beispiel_espnow_mqtt_lite.py`: Brokerloses publish/subscribe mit Topics
 - `beispiel_espnow_broker.py`: ESP32 als Mini-Broker mit Topic-Verteilung
+- `beispiel_espnow_broker_client_einfach.py`: Sehr einfacher Broker-Client mit Eingabe `topic: message` und einfachem `sub:`
+- `beispiel_espnow_broker_client_ohne_sub_eingabe.py`: Einsteiger-Variante mit festem Subscribe, danach nur `topic: message`
 - `beispiel_espnow_broker_client_bidirektional.py`: Bidirektionaler Client fuer den Mini-Broker
 
 
