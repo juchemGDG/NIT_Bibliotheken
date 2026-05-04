@@ -10,6 +10,7 @@ Hardware: 1x ESP32 als Broker + 1x ESP32 als Client
 """
 
 from nitbw_espnow import ESPNow
+from nitbw_espnow_mqtt import ESPNowMQTT
 import time
 
 
@@ -20,10 +21,11 @@ SUBSCRIBE_FILTER = "schule/chat/#"
 
 # --- Initialisierung ---
 esp = ESPNow()
+mqtt = ESPNowMQTT(esp, BROKER_MAC)
 
 print("=== ESPNOW Broker-Client (ohne Subscribe-Eingabe) ===")
 print("Eigene MAC:", esp.get_mac())
-print("Broker:", BROKER_MAC)
+print("Broker:", mqtt.broker_mac)
 print("Abo-Filter:", SUBSCRIBE_FILTER)
 print("")
 print("Nur dieses Eingabeformat nutzen:")
@@ -31,57 +33,15 @@ print("topic: message")
 print("")
 
 
-def send_subscribe(topic_filter):
-    esp.send_json(BROKER_MAC, {
-        "_proto": "nitbw-mqtt-lite-broker",
-        "type": "subscribe",
-        "topic": topic_filter,
-    })
-
-
-def send_publish(topic, message):
-    esp.send_json(BROKER_MAC, {
-        "_proto": "nitbw-mqtt-lite-broker",
-        "type": "publish",
-        "topic": topic,
-        "payload": message,
-    })
-
-
-def zeige_empfangene_nachrichten(max_nachrichten=8):
-    anzahl = 0
-    while anzahl < max_nachrichten:
-        data, sender = esp.receive_json(timeout_ms=80)
-        if data is None:
-            break
-
-        if data.get("_proto") != "nitbw-mqtt-lite-broker":
-            anzahl += 1
-            continue
-
-        msg_type = data.get("type")
-
-        if msg_type == "deliver":
-            topic = data.get("topic")
-            payload = data.get("payload")
-            original_sender = data.get("sender")
-            print("Empfangen [{}] von {}: {}".format(topic, original_sender, payload))
-
-        elif msg_type == "ack":
-            print("Broker-ACK:", data.get("message"))
-
-        anzahl += 1
-
-
 # Festes Subscribe beim Start
-send_subscribe(SUBSCRIBE_FILTER)
+mqtt.subscribe(SUBSCRIBE_FILTER)
 print("Start-Subscribe gesendet:", SUBSCRIBE_FILTER)
 time.sleep(0.05)
 
 
 # --- Hauptprogramm ---
 while True:
-    zeige_empfangene_nachrichten()
+    mqtt.zeige_nachrichten()
 
     eingabe = input("Eingabe (topic: message): ").strip()
     if not eingabe:
@@ -103,5 +63,5 @@ while True:
         print("Ungueltig. Topic fehlt.")
         continue
 
-    send_publish(topic, message)
+    mqtt.publish(topic, message)
     print("Publish gesendet [{}]: {}".format(topic, message))

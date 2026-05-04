@@ -11,6 +11,7 @@ Nutzung in der Klasse (z. B. bis 10 Gruppen/Clients):
 """
 
 from nitbw_espnow import ESPNow
+from nitbw_espnow_mqtt import ESPNowMQTT
 import time
 
 
@@ -43,36 +44,20 @@ PUBLISH_INTERVAL_S = 2.0
 
 # --- Initialisierung ---
 esp = ESPNow()
+mqtt = ESPNowMQTT(esp, BROKER_MAC)
 
 print("=== ESPNOW Broker-Client (bidirektional) ===")
 print("Eigene MAC:", esp.get_mac())
 print("Client:", CLIENT_NAME)
-print("Broker:", BROKER_MAC)
+print("Broker:", mqtt.broker_mac)
 print("Sende-Topic:", OUTGOING_TOPIC)
 print("Subscriptions:", SUBSCRIPTIONS)
 print()
 
 
-def send_subscribe(topic_filter):
-    esp.send_json(BROKER_MAC, {
-        "_proto": "nitbw-mqtt-lite-broker",
-        "type": "subscribe",
-        "topic": topic_filter,
-    })
-
-
-def send_publish(topic, payload):
-    esp.send_json(BROKER_MAC, {
-        "_proto": "nitbw-mqtt-lite-broker",
-        "type": "publish",
-        "topic": topic,
-        "payload": payload,
-    })
-
-
 # Subscriptions beim Start anmelden.
 for topic_filter in SUBSCRIPTIONS:
-    send_subscribe(topic_filter)
+    mqtt.subscribe(topic_filter)
     print("Subscribe gesendet:", topic_filter)
     time.sleep(0.05)
 
@@ -92,22 +77,20 @@ while True:
             "text": "Hallo von {}".format(CLIENT_NAME),
         }
 
-        send_publish(OUTGOING_TOPIC, payload)
+        mqtt.publish(OUTGOING_TOPIC, payload)
         print("Publish gesendet auf {}: {}".format(OUTGOING_TOPIC, payload))
 
         zaehler += 1
         naechstes_publish = time.ticks_add(jetzt, int(PUBLISH_INTERVAL_S * 1000))
 
     # Nachrichten vom Broker empfangen.
-    data, sender = esp.receive_json(timeout_ms=120)
-    if data is None:
+    msg_type, data, sender = mqtt.receive(timeout_ms=120)
+    if msg_type is None:
         continue
 
-    if data.get("_proto") != "nitbw-mqtt-lite-broker":
+    if msg_type == "other":
         print("Ignoriere Fremdprotokoll von {}: {}".format(sender, data))
         continue
-
-    msg_type = data.get("type")
 
     if msg_type == "deliver":
         topic = data.get("topic")

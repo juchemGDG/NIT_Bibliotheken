@@ -10,6 +10,7 @@ Hardware: 1x ESP32 als Broker + 1x ESP32 als Client
 """
 
 from nitbw_espnow import ESPNow
+from nitbw_espnow_mqtt import ESPNowMQTT
 import time
 
 
@@ -20,10 +21,11 @@ START_SUBSCRIBE = "schule/chat/#"
 
 # --- Initialisierung ---
 esp = ESPNow()
+mqtt = ESPNowMQTT(esp, BROKER_MAC)
 
 print("=== ESPNOW Broker-Client (einfach) ===")
 print("Eigene MAC:", esp.get_mac())
-print("Broker:", BROKER_MAC)
+print("Broker:", mqtt.broker_mac)
 print("")
 print("Eingaben:")
 print("- sub: topic/filter")
@@ -31,56 +33,9 @@ print("- topic: message")
 print("")
 
 
-def send_subscribe(topic_filter):
-    esp.send_json(BROKER_MAC, {
-        "_proto": "nitbw-mqtt-lite-broker",
-        "type": "subscribe",
-        "topic": topic_filter,
-    })
-
-
-def send_publish(topic, message):
-    esp.send_json(BROKER_MAC, {
-        "_proto": "nitbw-mqtt-lite-broker",
-        "type": "publish",
-        "topic": topic,
-        "payload": message,
-    })
-
-
-def zeige_empfangene_nachrichten(max_nachrichten=8):
-    """Holt einige Nachrichten ab und zeigt sie auf der Konsole."""
-    anzahl = 0
-    while anzahl < max_nachrichten:
-        data, sender = esp.receive_json(timeout_ms=80)
-        if data is None:
-            break
-
-        if data.get("_proto") != "nitbw-mqtt-lite-broker":
-            print("Ignoriere Fremdprotokoll von {}: {}".format(sender, data))
-            anzahl += 1
-            continue
-
-        msg_type = data.get("type")
-
-        if msg_type == "deliver":
-            topic = data.get("topic")
-            payload = data.get("payload")
-            original_sender = data.get("sender")
-            print("Empfangen [{}] von {}: {}".format(topic, original_sender, payload))
-
-        elif msg_type == "ack":
-            print("Broker-ACK:", data.get("message"))
-
-        else:
-            print("Unbekannter Typ vom Broker:", msg_type)
-
-        anzahl += 1
-
-
 # Start-Subscribe (optional) direkt anmelden
 if START_SUBSCRIBE:
-    send_subscribe(START_SUBSCRIBE)
+    mqtt.subscribe(START_SUBSCRIBE)
     print("Start-Subscribe gesendet:", START_SUBSCRIBE)
     time.sleep(0.05)
 
@@ -88,7 +43,7 @@ if START_SUBSCRIBE:
 # --- Hauptprogramm ---
 while True:
     # Vor jeder Eingabe kurz auf neue Nachrichten pruefen.
-    zeige_empfangene_nachrichten()
+    mqtt.zeige_nachrichten(zeige_fremdprotokoll=True)
 
     eingabe = input("Eingabe (sub: topic/filter oder topic: message): ").strip()
     if not eingabe:
@@ -104,7 +59,7 @@ while True:
             print("Ungueltig. Beispiel: sub: schule/chat/#")
             continue
 
-        send_subscribe(topic_filter)
+        mqtt.subscribe(topic_filter)
         print("Subscribe gesendet:", topic_filter)
         continue
 
@@ -121,5 +76,5 @@ while True:
         print("Ungueltig. Topic fehlt.")
         continue
 
-    send_publish(topic, message)
+    mqtt.publish(topic, message)
     print("Publish gesendet [{}]: {}".format(topic, message))
