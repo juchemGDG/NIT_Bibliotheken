@@ -2,7 +2,7 @@
 NIT Bibliothek: ESPNOW MQTT-Helfer fuer Mini-Broker
 Fuer ESP32 mit MicroPython
 
-Version:    1.0.0
+Version:    1.3.0
 Autor:      Stephan Juchem / nitbw
 Lizenz:     MIT (siehe LICENSE)
 Erstellt:   2026-05
@@ -60,28 +60,52 @@ class ESPNowMQTT:
             "payload": payload,
         })
 
-    def receive(self, timeout_ms=80):
+    def receive(self, timeout_ms=80, nur_nicht_none=False):
         """
         Empfaengt genau eine Nachricht.
+
+        Args:
+            timeout_ms: Wartezeit pro Empfangsversuch in Millisekunden.
+            nur_nicht_none: Wenn True, wird intern weiter gewartet,
+                bis eine Nachricht empfangen wurde.
 
         Returns:
             (msg_type, data, sender)
             msg_type ist z. B. "deliver", "ack", "other" oder None.
         """
-        data, sender = self.esp.receive_json(timeout_ms=timeout_ms)
-        if data is None:
-            return None, None, None
+        while True:
+            data, sender = self.esp.receive_json(timeout_ms=timeout_ms)
+            if data is None:
+                if nur_nicht_none:
+                    continue
+                return None, None, None
 
-        if data.get("_proto") != self.PROTO:
-            return "other", data, sender
+            if data.get("_proto") != self.PROTO:
+                return "other", data, sender
 
-        return data.get("type"), data, sender
+            return data.get("type"), data, sender
 
-    def zeige_nachrichten(self, max_nachrichten=8, timeout_ms=80, zeige_fremdprotokoll=False):
-        """Zeigt empfangene Deliver/ACK-Nachrichten direkt auf der Konsole."""
+    def zeige_nachrichten(
+        self,
+        max_nachrichten=8,
+        timeout_ms=80,
+        zeige_fremdprotokoll=False,
+        nur_nicht_none=False,
+    ):
+        """
+        Zeigt empfangene Deliver/ACK-Nachrichten direkt auf der Konsole.
+
+        Args:
+            nur_nicht_none: Wenn True, wird mindestens auf die erste Nachricht
+                gewartet. Weitere Empfangsversuche laufen mit normalem Timeout.
+        """
         anzahl = 0
         while anzahl < max_nachrichten:
-            msg_type, data, sender = self.receive(timeout_ms=timeout_ms)
+            warte_auf_erste = nur_nicht_none and anzahl == 0
+            msg_type, data, sender = self.receive(
+                timeout_ms=timeout_ms,
+                nur_nicht_none=warte_auf_erste,
+            )
             if msg_type is None:
                 break
 
@@ -102,6 +126,64 @@ class ESPNowMQTT:
                 print("Unbekannter Typ vom Broker:", msg_type)
 
             anzahl += 1
+
+    def zeige_json(
+        self,
+        max_nachrichten=8,
+        timeout_ms=80,
+        include_sender=False,
+        include_broker_mac=False,
+        zeige_fremdprotokoll=False,
+        nur_nicht_none=False,
+    ):
+        """
+        Liefert empfangene Deliver-Nachrichten als reduzierte JSON-Objekte.
+
+        Returns:
+            Liste von Dictionaries mit mindestens:
+            - topic
+            - payload
+
+            Optional zusaetzlich:
+            - sender (urspruenglicher Publisher)
+            - broker_mac (MAC des Brokers als Sender der Deliver-Nachricht)
+
+            Mit nur_nicht_none=True wird mindestens auf die erste Nachricht
+            gewartet. Weitere Empfangsversuche laufen mit normalem Timeout.
+        """
+        nachrichten = []
+        anzahl = 0
+
+        while anzahl < max_nachrichten:
+            warte_auf_erste = nur_nicht_none and anzahl == 0
+            msg_type, data, sender = self.receive(
+                timeout_ms=timeout_ms,
+                nur_nicht_none=warte_auf_erste,
+            )
+            if msg_type is None:
+                break
+
+            if msg_type == "deliver":
+                eintrag = {
+                    "topic": data.get("topic"),
+                    "payload": data.get("payload"),
+                }
+
+                if include_sender:
+                    eintrag["sender"] = data.get("sender")
+
+                if include_broker_mac:
+                    eintrag["broker_mac"] = sender
+
+                nachrichten.append(eintrag)
+
+            elif msg_type == "other":
+                if zeige_fremdprotokoll:
+                    print("Ignoriere Fremdprotokoll von {}: {}".format(sender, data))
+
+            anzahl += 1
+
+        return nachrichten
 
     # ================================================================
     # Broker-Helfer

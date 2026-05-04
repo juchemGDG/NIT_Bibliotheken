@@ -40,6 +40,7 @@ else:
     raise ValueError("SUBSCRIBE_MODE muss 'all' oder 'selected' sein")
 
 PUBLISH_INTERVAL_S = 2.0
+WARTE_AUF_NACHRICHT = False
 
 
 # --- Initialisierung ---
@@ -84,7 +85,10 @@ while True:
         naechstes_publish = time.ticks_add(jetzt, int(PUBLISH_INTERVAL_S * 1000))
 
     # Nachrichten vom Broker empfangen.
-    msg_type, data, sender = mqtt.receive(timeout_ms=120)
+    msg_type, data, sender = mqtt.receive(
+        timeout_ms=120,
+        nur_nicht_none=WARTE_AUF_NACHRICHT,
+    )
     if msg_type is None:
         continue
 

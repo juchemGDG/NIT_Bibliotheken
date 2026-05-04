@@ -140,6 +140,39 @@ ESPNow()
 |---|---|---|
 | `scan_peers()` | list | Liste bereits bekannter/verwendeter Peer-MACs |
 
+### API fuer Mini-Broker-Helfer (`ESPNowMQTT`)
+
+```python
+ESPNowMQTT(esp, broker_mac=None)
+```
+
+| Parameter | Typ | Standard | Beschreibung |
+|---|---|---|---|
+| `esp` | ESPNow | - | Initialisiertes ESPNow-Objekt |
+| `broker_mac` | str/None | `None` | MAC des Brokers fuer Client-Betrieb |
+
+#### Client-Methoden
+
+| Methode | Rueckgabe | Beschreibung |
+|---|---|---|
+| `subscribe(topic_filter)` | bool | Sendet Subscribe an den Broker |
+| `unsubscribe(topic_filter)` | bool | Sendet Unsubscribe an den Broker |
+| `publish(topic, payload)` | bool | Sendet Publish an den Broker |
+| `receive(timeout_ms=80, nur_nicht_none=False)` | tuple | `(msg_type, data, sender)` oder `(None, None, None)`; bei `nur_nicht_none=True` wartet die Methode intern bis eine Nachricht vorhanden ist |
+| `zeige_nachrichten(max_nachrichten=8, timeout_ms=80, zeige_fremdprotokoll=False, nur_nicht_none=False)` | None | Zeigt `deliver`/`ack` direkt auf der Konsole; mit `nur_nicht_none=True` wartet die Funktion mindestens auf die erste Nachricht |
+| `zeige_json(max_nachrichten=8, timeout_ms=80, include_sender=False, include_broker_mac=False, zeige_fremdprotokoll=False, nur_nicht_none=False)` | list | Liefert reduzierte `deliver`-JSONs mit `topic` und `payload` (optional `sender`, `broker_mac`); mit `nur_nicht_none=True` wartet die Funktion mindestens auf die erste Nachricht |
+
+#### Broker-Methoden
+
+| Methode | Rueckgabe | Beschreibung |
+|---|---|---|
+| `handle_broker_message(timeout_ms=400)` | bool | Verarbeitet genau eine Broker-Nachricht |
+| `add_subscription(sender_mac, topic_filter)` | None | Merkt Topic-Filter fuer einen Client |
+| `remove_subscription(sender_mac, topic_filter)` | None | Entfernt Topic-Filter fuer einen Client |
+| `forward_publish(sender_mac, topic, payload, exclude_sender=True)` | int | Leitet Publish an passende Subscriber weiter |
+| `send_ack(sender_mac, text)` | None | Sendet ACK-Text an Client |
+| `topic_matches(topic_filter, topic)` | bool | Prueft Topic-Wildcards (`+`, `#`) |
+
 ## Beispiele
 
 - `beispiel_espnow.py`: Textnachrichten zwischen zwei ESP32 senden/empfangen

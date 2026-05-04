@@ -17,6 +17,7 @@ import time
 # --- Konfiguration ---
 BROKER_MAC = "AA:BB:CC:DD:EE:FF"
 START_SUBSCRIBE = "schule/chat/#"
+WARTE_AUF_NACHRICHT = False
 
 
 # --- Initialisierung ---
@@ -43,7 +44,23 @@ if START_SUBSCRIBE:
 # --- Hauptprogramm ---
 while True:
     # Vor jeder Eingabe kurz auf neue Nachrichten pruefen.
-    mqtt.zeige_nachrichten(zeige_fremdprotokoll=True)
+    nachrichten = mqtt.zeige_json(
+        max_nachrichten=8,
+        timeout_ms=80,
+        include_sender=True,
+        include_broker_mac=True,
+        zeige_fremdprotokoll=True,
+        nur_nicht_none=WARTE_AUF_NACHRICHT,
+    )
+    for eintrag in nachrichten:
+        print(
+            "JSON Empfangen auf [{}]: {} (sender={}, broker={})".format(
+                eintrag.get("topic"),
+                eintrag.get("payload"),
+                eintrag.get("sender"),
+                eintrag.get("broker_mac"),
+            )
+        )
 
     eingabe = input("Eingabe (sub: topic/filter oder topic: message): ").strip()
     if not eingabe:
