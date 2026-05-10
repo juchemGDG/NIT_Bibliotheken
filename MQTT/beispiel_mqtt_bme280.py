@@ -38,8 +38,8 @@ def messwerte_aufbereiten(temperatur, feuchte):
     """Baut den JSON-Datensatz fuer die gesendeten Messwerte."""
     return {
         "name": NAME,
-        "Temp.": round(temperatur, 1),
-        "Feuchte": round(feuchte, 1),
+        "wert1": round(temperatur, 1),
+        "wert2": round(feuchte, 1),
     }
 
 
