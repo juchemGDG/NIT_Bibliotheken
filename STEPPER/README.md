@@ -174,7 +174,7 @@ StepperULN(in1, in2, in3, in4, schritte_pro_umdrehung=2048, geschwindigkeit=10)
 #### Konstruktor
 
 ```python
-StepperDir(step_pin, dir_pin, enable_pin=None, schritte_pro_umdrehung=200, geschwindigkeit=100)
+StepperDir(step_pin, dir_pin, enable_pin=None, schritte_pro_umdrehung=200, geschwindigkeit=800)
 ```
 
 | Parameter | Typ | Standard | Beschreibung |
@@ -183,7 +183,7 @@ StepperDir(step_pin, dir_pin, enable_pin=None, schritte_pro_umdrehung=200, gesch
 | `dir_pin` | int | - | GPIO-Pin fuer DIR-Signal |
 | `enable_pin` | int/None | None | GPIO-Pin fuer ENABLE (optional, LOW = aktiv) |
 | `schritte_pro_umdrehung` | int | 200 | Schritte pro Umdrehung (inkl. Microstepping-Faktor) |
-| `geschwindigkeit` | int/float | 100 | Startgeschwindigkeit in Schritten/Sekunde |
+| `geschwindigkeit` | int/float | 800 | Startgeschwindigkeit in Schritten/Sekunde |
 
 #### Methoden
 
@@ -194,6 +194,14 @@ Alle Methoden aus `StepperULN` sind vorhanden, zusaetzlich:
 | `aktivieren()` | ENABLE-Pin auf LOW (Treiber aktiv, Motor bestromt) |
 | `deaktivieren()` | ENABLE-Pin auf HIGH (Treiber inaktiv, Motor dreht frei) |
 | `aus()` | STEP auf LOW, dann `deaktivieren()` |
+
+> **Motor stottert / laeuft nicht rund?** Im **Vollschritt** hat ein NEMA 17
+> eine mechanische Resonanz bei ca. **200 - 600 sps** (~1 - 3 Umdrehungen/s).
+> In diesem Bereich kann der Motor rau laufen oder nur stottern. Loesung:
+> - Geschwindigkeit **oberhalb** der Resonanz waehlen (z. B. 800 - 1500 sps).
+> - Fuer ruhigen Langsamlauf am Treiber **Mikroschritt** aktivieren
+>   (MS1/MS2/MS3) und `schritte_pro_umdrehung` entsprechend erhoehen
+>   (z. B. 1/16-Schritt -> 3200).
 
 ---
 

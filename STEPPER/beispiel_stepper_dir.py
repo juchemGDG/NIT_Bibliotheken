@@ -15,9 +15,12 @@ import time
 #   ENABLE -> GPIO 26 (optional, LOW = aktiv)
 #   VMOT  -> 12 V (externes Netzteil!)
 #   GND   -> GND (gemeinsam mit ESP32)
+# Hinweis: 800 sps liegt oberhalb des Vollschritt-Resonanzbereichs
+# (~200-600 sps). Bei niedrigeren Werten kann der NEMA 17 rau laufen
+# oder stottern - das ist Motorphysik, kein Fehler der Bibliothek.
 motor = StepperDir(step_pin=14, dir_pin=27, enable_pin=26,
                    schritte_pro_umdrehung=200,
-                   geschwindigkeit=400)
+                   geschwindigkeit=800)
 
 # --- Hauptprogramm ---
 print("=== StepperDir Grundbeispiel (NEMA 17 + A4988) ===")
@@ -54,8 +57,10 @@ time.sleep(0.5)
 print("Aktuelle Position: " + str(motor.lese_position()) + " Schritte")
 
 # Geschwindigkeit aendern
-print("Langsam: 100 sps, 1 Umdrehung")
-motor.geschwindigkeit(100)
+# 300 sps liegt im Resonanzbereich -> im Vollschritt merklich rauer.
+# Fuer wirklich ruhigen Langsamlauf am Treiber Mikroschritt aktivieren.
+print("Langsamer: 300 sps, 1 Umdrehung")
+motor.geschwindigkeit(300)
 motor.umdrehungen(1, VOR)
 time.sleep(0.5)
 

@@ -260,13 +260,25 @@ class StepperDir:
     - A4988, DRV8825, TMC2208 und kompatible STEP/DIR-Treiber
 
     Schnittstelle: STEP-Pin, DIR-Pin, optional ENABLE-Pin
+
+    WICHTIG - Resonanz / "Stottern":
+    Bipolare Motoren haben im VOLLSCHRITT-Betrieb eine mechanische Resonanz
+    bei ca. 1 - 3 Umdrehungen pro Sekunde. Das entspricht bei 200 Schritten
+    pro Umdrehung etwa 200 - 600 sps. In diesem Bereich kann der Motor rau
+    laufen, vibrieren oder im Extremfall nur "stottern", statt sauber zu
+    drehen. Abhilfe:
+    - Hoehere Geschwindigkeit waehlen (z. B. 800 - 1500 sps), die Resonanz
+      liegt dann unterhalb der Betriebsdrehzahl. (Standard hier: 800 sps.)
+    - Fuer langsame, ruhige Bewegungen am Treiber Mikroschritt aktivieren
+      (MS1/MS2/MS3) und schritte_pro_umdrehung entsprechend erhoehen
+      (z. B. 1/16-Schritt -> 3200).
     """
 
     # Mindestimpulsbreite STEP-Pin in Mikrosekunden (A4988: >= 1 us)
     _STEP_PULS_US = 2
 
     def __init__(self, step_pin, dir_pin, enable_pin=None,
-                 schritte_pro_umdrehung=200, geschwindigkeit=100):
+                 schritte_pro_umdrehung=200, geschwindigkeit=800):
         """
         Initialisiert den STEP/DIR-Stepper.
 
@@ -279,7 +291,11 @@ class StepperDir:
                         sofort aktiviert.
             schritte_pro_umdrehung: Vollschritte pro Umdrehung
                                     (NEMA 17 Standard: 200)
-            geschwindigkeit: Startgeschwindigkeit in Schritten/Sekunde
+            geschwindigkeit: Startgeschwindigkeit in Schritten/Sekunde.
+                             Standard 800 sps liegt bewusst oberhalb des
+                             Vollschritt-Resonanzbereichs (~200-600 sps),
+                             damit der Motor sauber laeuft. Siehe Hinweis
+                             im Klassen-Docstring.
         """
         self._step = Pin(step_pin, Pin.OUT, value=0)
         self._dir = Pin(dir_pin, Pin.OUT, value=0)
@@ -434,7 +450,11 @@ class StepperDir:
         Setzt die Motorgeschwindigkeit.
 
         Args:
-            sps: Schritte pro Sekunde (z. B. 200 bis 2000 fuer NEMA 17)
+            sps: Schritte pro Sekunde (NEMA 17: sinnvoll 800 - 2000 sps).
+                 Achtung: ~200 - 600 sps liegen im Vollschritt-
+                 Resonanzbereich und koennen zu rauem Lauf / Stottern
+                 fuehren. Fuer langsame, ruhige Bewegungen Mikroschritt
+                 am Treiber verwenden. Siehe Klassen-Docstring.
 
         Raises:
             ValueError: Wenn sps <= 0.

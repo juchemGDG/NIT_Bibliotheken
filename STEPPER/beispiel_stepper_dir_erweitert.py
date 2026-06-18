@@ -10,15 +10,16 @@ import time
 
 # --- Initialisierung ---
 # STEP -> GPIO 14, DIR -> GPIO 27, ENABLE -> GPIO 26
+# 800 sps liegt oberhalb der Vollschritt-Resonanz (~200-600 sps) -> ruhiger Lauf.
 motor = StepperDir(step_pin=14, dir_pin=27, enable_pin=26,
                    schritte_pro_umdrehung=200,
-                   geschwindigkeit=500)
+                   geschwindigkeit=800)
 
 print("=== StepperDir Erweitertes Beispiel ===")
 
 
 # --- Beispiel 1: Nicht-blockierende Bewegung mit Status-Ausgabe ---
-print("\n1) 400 Schritte nicht-blockierend (500 sps)")
+print("\n1) 400 Schritte nicht-blockierend (800 sps)")
 
 motor.starte(400, VOR)
 
