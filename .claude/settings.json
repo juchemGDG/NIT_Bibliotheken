@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p /workspaces/NIT_Bibliotheken/MPU6050)"
+    ],
+    "additionalDirectories": [
+      "/workspaces/NIT_Bibliotheken"
+    ]
+  }
+}

@@ -28,6 +28,7 @@ Konventionen fuer neue Bibliotheken sind in [`.github/copilot-instructions.md`](
 | TOENE | `TOENE/nitbw_toene.py` | `TOENE/beispiel_toene.py`, `TOENE/beispiel_toene_lied.py` | 1.2.0 |
 | Puls | `PULS/nitbw_puls.py` | `PULS/beispiel_puls.py`, `PULS/beispiel_puls_bpm.py` | 1.0.0 |
 | STEPPER | `STEPPER/nitbw_stepper.py` | `STEPPER/beispiel_stepper_uln.py`, `STEPPER/beispiel_stepper_dir.py` | 1.0.0 |
+| MPU6050 | `MPU6050/nitbw_mpu6050.py` | `MPU6050/beispiel_mpu6050.py`, `MPU6050/beispiel_mpu6050_neigung.py` | 1.0.0 |
 
 ## Schnellstart-Muster
 
@@ -102,6 +103,15 @@ model.train_forest(n_trees=5, max_depth=3)
 print(model.predict_forest([52, 70, 151, 214, 210, 140]))
 ```
 
+```python
+# Beispiel MPU6050
+from machine import I2C, Pin
+from nitbw_mpu6050 import MPU6050
+i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=400000)
+sensor = MPU6050(i2c)
+print(sensor.read_all())
+```
+
 ## Dokumentation je Bibliothek
 
 - `LCD/README.md`
@@ -123,6 +133,7 @@ print(model.predict_forest([52, 70, 151, 214, 210, 140]))
 - `TOENE/README.md`
 - `PULS/README.md`
 - `STEPPER/README.md`
+- `MPU6050/README.md`
 
 ## Lizenz
 
