@@ -15,6 +15,8 @@ mehrere Motoren oder andere Aufgaben gleichzeitig im Hauptloop zu betreiben.
 Die Implementierung ist eigenstaendig (keine externen Abhaengigkeiten ausser `machine`)
 und bietet eine deutschsprachige API.
 
+**Beachte:** Bei Verwendung des A4988 muss ein ELKO 100 uF parallel zu Vmot und Gnd geschaltet werden!
+
 ## Features
 
 - Zwei getrennte Klassen fuer die gaengigsten Motortypen
