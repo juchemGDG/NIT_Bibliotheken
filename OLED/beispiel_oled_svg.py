@@ -45,7 +45,14 @@ oled.show()
 #   python svg_zu_bitmap.py icon.svg -W 128 -H 64
 # erzeugt 'icon_bitmap.py' -> auf den ESP32 kopieren, dann:
 #
-# from icon_bitmap import BITMAP, WIDTH, HEIGHT
+# Einzelbild (Modulname genuegt, kein 'from ... import' noetig):
 # oled.clear()
-# oled.show_image(BITMAP, 0, 0, WIDTH, HEIGHT)
+# oled.show_image('icon_bitmap')
 # oled.show()
+
+
+# ---------------------------------------------------------------
+# Mehrere Bilder als Diashow (kein Import/show pro Bild noetig)
+# ---------------------------------------------------------------
+# oled.slideshow(['bild1_bitmap', 'bild2_bitmap', 'bild3_bitmap'],
+#                pause=1.5, loop=True)

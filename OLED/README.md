@@ -86,7 +86,8 @@ Wichtige Methoden:
 - `draw_circle(...)` / `fill_circle(...)`
 - `map(value, in_min, in_max, out_min, out_max)`
 - `progress_bar(...)` / `draw_bar(...)`
-- `show_image(data, x=0, y=0, width=None, height=None)`
+- `show_image(data, x=0, y=0, width=None, height=None)` – `data` darf Modulname (str), Modul oder bytes sein
+- `slideshow(bilder, pause=2.0, loop=False, clear=True, x=0, y=0)`
 - `draw_svg(svg, x=0, y=0, scale=1.0, color=1)`
 
 ## SVG anzeigen
@@ -122,12 +123,19 @@ direkt im Editor:
    python3 svg_zu_bitmap.py icon.svg -W 128 -H 64
    ```
 
-Das Ergebnis (`icon_bitmap.py`) auf den ESP32 kopieren und anzeigen:
+Das Ergebnis (`icon_bitmap.py`) auf den ESP32 kopieren und anzeigen – der
+Modulname genuegt, ein `from icon_bitmap import ...` ist nicht noetig:
 ```python
-from icon_bitmap import BITMAP, WIDTH, HEIGHT
 oled.clear()
-oled.show_image(BITMAP, 0, 0, WIDTH, HEIGHT)
+oled.show_image('icon_bitmap')   # WIDTH/HEIGHT werden automatisch gelesen
 oled.show()
+```
+
+Mehrere Bilder nacheinander zeigt `slideshow()` – ohne Import oder
+`show_image()`/`show()` je Bild:
+```python
+oled.slideshow(['bild1_bitmap', 'bild2_bitmap', 'bild3_bitmap'],
+               pause=1.5, loop=True)   # loop=True = endlos, mit Reset beenden
 ```
 
 **Ansatz B – einfache SVG direkt am Geraet zeichnen.**

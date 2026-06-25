@@ -2,7 +2,7 @@
 NIT Bibliothek: OLED - Grafiktreiber fuer SSD1306 und SH1106 Displays
 Fuer ESP32 mit MicroPython
 
-Version:    1.3.0
+Version:    1.4.0
 Autor:      Stephan Juchem, Volker Rust / nitbw
 Lizenz:     MIT (siehe LICENSE)
 Erstellt:   2026-03
@@ -810,32 +810,84 @@ class OLED:
         'svg_zu_bitmap.py' in ein MONO_VLSB-Bytearray (gleiches Format wie
         LOGO_PBM) gewandelt und hier nur noch angezeigt.
 
+        'data' darf bequem auf mehrere Arten uebergeben werden:
+            - Modulname als String:  'bild1_bitmap'   (wird automatisch
+              importiert; WIDTH/HEIGHT werden daraus gelesen)
+            - das importierte Modul selbst (mit BITMAP/WIDTH/HEIGHT)
+            - rohe bytes/bytearray im MONO_VLSB-Format
+
+        So entfaellt das manuelle 'from bild1_bitmap import BITMAP, WIDTH, HEIGHT'.
+
         Args:
-            data: bytes/bytearray im MONO_VLSB-Format (Spalten zu je 8 Pixeln)
+            data: Modulname (str), Modul oder bytes/bytearray (MONO_VLSB)
             x: X-Position der oberen linken Ecke (Standard: 0)
             y: Y-Position der oberen linken Ecke (Standard: 0)
-            width: Bildbreite in Pixeln (Standard: Displaybreite)
-            height: Bildhoehe in Pixeln (Standard: Displayhoehe)
+            width: Bildbreite in Pixeln (Standard: aus Modul bzw. Displaybreite)
+            height: Bildhoehe in Pixeln (Standard: aus Modul bzw. Displayhoehe)
 
         Hinweis: Rufen Sie show() auf, um die Aenderungen anzuzeigen
 
         Beispiel:
-            from mein_logo import LOGO   # vom Konverter erzeugt
-            oled.show_image(LOGO, 0, 0, 128, 64)
+            oled.show_image('bild1_bitmap')   # Modulname genuegt
             oled.show()
         """
         if not self.enabled:
             return
 
+        data, mw, mh = self._bild_aufloesen(data)
         if width is None:
-            width = self.width
+            width = mw
         if height is None:
-            height = self.height
+            height = mh
 
         # FrameBuffer benoetigt ein bytearray (mutable)
         buf = data if isinstance(data, bytearray) else bytearray(data)
         fb = framebuf.FrameBuffer(buf, width, height, framebuf.MONO_VLSB)
         self.display.blit(fb, x, y)
+
+    def _bild_aufloesen(self, quelle):
+        """Ermittelt (daten, breite, hoehe) aus Modulname, Modul oder bytes."""
+        # Modulname als String -> Modul importieren
+        if isinstance(quelle, str):
+            quelle = __import__(quelle)
+        # Modul/Objekt mit BITMAP (vom Konverter erzeugt)
+        if hasattr(quelle, 'BITMAP'):
+            return (quelle.BITMAP,
+                    getattr(quelle, 'WIDTH', self.width),
+                    getattr(quelle, 'HEIGHT', self.height))
+        # rohe bytes/bytearray
+        return quelle, self.width, self.height
+
+    def slideshow(self, bilder, pause=2.0, loop=False, clear=True, x=0, y=0):
+        """
+        Zeigt mehrere Bilder nacheinander als Diashow.
+
+        Erspart das wiederholte Importieren und show_image()/show() je Bild.
+
+        Args:
+            bilder: Liste von Bildern - je Eintrag Modulname (str), Modul
+                    oder bytes/bytearray (MONO_VLSB)
+            pause: Anzeigedauer pro Bild in Sekunden (Standard: 2.0)
+            loop: True = endlos wiederholen (mit Strg-C / Reset beenden)
+            clear: True = vor jedem Bild den Puffer loeschen (Standard: True)
+            x, y: Position der Bilder (Standard: 0, 0)
+
+        Beispiel:
+            oled.slideshow(['bild1_bitmap', 'bild2_bitmap', 'bild3_bitmap'],
+                           pause=1.5, loop=True)
+        """
+        if not self.enabled:
+            return
+
+        while True:
+            for bild in bilder:
+                if clear:
+                    self.display.fill(0)
+                self.show_image(bild, x, y)
+                self.display.show()
+                time.sleep(pause)
+            if not loop:
+                break
 
     def draw_svg(self, svg, x=0, y=0, scale=1.0, color=1):
         """
