@@ -3,7 +3,7 @@
 ## Beschreibung
 Die Bibliothek `nitbw_oled.py` steuert OLED-Displays mit SSD1306 oder SH1106 ueber I2C an. Neben Textausgabe bietet sie eine umfangreiche Grafik-API mit Linien, Rechtecken, Kreisen und Balkendiagrammen. Alle Zeichenoperationen laufen gepuffert und werden mit `show()` in einem Schritt auf dem Display aktualisiert.
 
-Aktueller Stand: Version 1.2.0
+Aktueller Stand: Version 1.3.0
 
 ## Features
 - Unterstuetzung fuer SSD1306 und SH1106 (128x64 und 128x32)
@@ -13,6 +13,8 @@ Aktueller Stand: Version 1.2.0
 - Pixel-, Linien-, Rechteck- und Kreisfunktionen
 - Gefuellte Formen (`fill_rect`, `fill_circle`)
 - Hilfsmethoden fuer Datenvisualisierung (`map`, `progress_bar`, `draw_bar`)
+- Bitmap-Anzeige (`show_image`) und vereinfachte SVG-Anzeige (`draw_svg`)
+- PC-Konverter `svg_zu_bitmap.py` zum Umwandeln von SVG in 1-Bit-Bitmaps
 - Optionales Startlogo bei Initialisierung
 - Kompakter Buffer-Ansatz fuer flimmerarme Darstellung
 - Einfacher Einsatz im Unterricht mit klaren Methoden
@@ -84,12 +86,56 @@ Wichtige Methoden:
 - `draw_circle(...)` / `fill_circle(...)`
 - `map(value, in_min, in_max, out_min, out_max)`
 - `progress_bar(...)` / `draw_bar(...)`
+- `show_image(data, x=0, y=0, width=None, height=None)`
+- `draw_svg(svg, x=0, y=0, scale=1.0, color=1)`
+
+## SVG anzeigen
+Es gibt zwei Wege, eine SVG darzustellen:
+
+**Ansatz A – vorab in ein Bitmap wandeln (empfohlen fuer komplexe Grafiken).**
+SVG ist ein Vektorformat; ein vollstaendiger Renderer ist auf dem ESP32 nicht
+praktikabel. Daher wird die SVG auf dem PC mit dem Hilfsskript
+`svg_zu_bitmap.py` in ein 1-Bit-Bitmap (MONO_VLSB, wie das Startlogo) gewandelt
+und auf dem Geraet nur noch mit `show_image()` angezeigt.
+
+```bash
+# Auf dem PC (einmalig):
+pip install cairosvg pillow
+python svg_zu_bitmap.py icon.svg -W 128 -H 64   # erzeugt icon_bitmap.py
+```
+```python
+# Auf dem ESP32 (icon_bitmap.py vorher kopieren):
+from icon_bitmap import BITMAP, WIDTH, HEIGHT
+oled.clear()
+oled.show_image(BITMAP, 0, 0, WIDTH, HEIGHT)
+oled.show()
+```
+
+**Ansatz B – einfache SVG direkt am Geraet zeichnen.**
+`draw_svg()` parst eine Teilmenge von SVG direkt auf dem ESP32:
+`line`, `rect`, `circle`, `polyline`, `polygon` und `path` (M/L/H/V/Z).
+Kurven (C/S/Q/T/A) werden als Gerade zum Endpunkt angenaehert; Transformationen,
+Stile, Fuellungen und Text werden nicht unterstuetzt.
+
+```python
+svg = """
+<svg width="128" height="64">
+  <rect x="2" y="2" width="124" height="60"/>
+  <circle cx="32" cy="32" r="14"/>
+  <path d="M70 10 L120 10 L120 30 Z"/>
+</svg>
+"""
+oled.clear()
+oled.draw_svg(svg, x=0, y=0, scale=1.0)
+oled.show()
+```
 
 ## Beispiele
 Dateien im Ordner:
 - `OLED/beispiel_oled_schnellstart.py`
 - `OLED/beispiel_oled.py`
 - `OLED/beispiel_oled_funktionen.py`
+- `OLED/beispiel_oled_svg.py`
 
 Snippet 1: Linie und Text kombinieren
 ```python

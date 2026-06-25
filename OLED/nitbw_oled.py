@@ -2,12 +2,13 @@
 NIT Bibliothek: OLED - Grafiktreiber fuer SSD1306 und SH1106 Displays
 Fuer ESP32 mit MicroPython
 
-Version:    1.2.0
+Version:    1.3.0
 Autor:      Stephan Juchem, Volker Rust / nitbw
 Lizenz:     MIT (siehe LICENSE)
 Erstellt:   2026-03
 
-Umfangreiche Grafikfunktionen inkl. Text, Linien, Kreise und Balkenanzeigen.
+Umfangreiche Grafikfunktionen inkl. Text, Linien, Kreise, Balkenanzeigen,
+Bitmap-/SVG-Anzeige (show_image, draw_svg).
 Treiber und Fontdaten sind direkt im Modul enthalten, ohne externe Abhaengigkeiten.
 """
 
@@ -795,6 +796,296 @@ class OLED:
             # Horizontale Ausrichtung (width >= height)
             fill_width = int((value_percent / 100.0) * width)
             self.display.fill_rect(x, y, fill_width, height, color)
+
+    # ------------------------------------------------------------------
+    # Bilder / SVG
+    # ------------------------------------------------------------------
+
+    def show_image(self, data, x=0, y=0, width=None, height=None):
+        """
+        Zeigt ein 1-Bit-Bitmap (MONO_VLSB) an der Position (x, y) an.
+
+        Dies ist der robuste Weg, um beliebige Grafiken - auch aus SVG-Dateien -
+        darzustellen: Die SVG wird vorab auf dem PC mit dem Hilfsskript
+        'svg_zu_bitmap.py' in ein MONO_VLSB-Bytearray (gleiches Format wie
+        LOGO_PBM) gewandelt und hier nur noch angezeigt.
+
+        Args:
+            data: bytes/bytearray im MONO_VLSB-Format (Spalten zu je 8 Pixeln)
+            x: X-Position der oberen linken Ecke (Standard: 0)
+            y: Y-Position der oberen linken Ecke (Standard: 0)
+            width: Bildbreite in Pixeln (Standard: Displaybreite)
+            height: Bildhoehe in Pixeln (Standard: Displayhoehe)
+
+        Hinweis: Rufen Sie show() auf, um die Aenderungen anzuzeigen
+
+        Beispiel:
+            from mein_logo import LOGO   # vom Konverter erzeugt
+            oled.show_image(LOGO, 0, 0, 128, 64)
+            oled.show()
+        """
+        if not self.enabled:
+            return
+
+        if width is None:
+            width = self.width
+        if height is None:
+            height = self.height
+
+        # FrameBuffer benoetigt ein bytearray (mutable)
+        buf = data if isinstance(data, bytearray) else bytearray(data)
+        fb = framebuf.FrameBuffer(buf, width, height, framebuf.MONO_VLSB)
+        self.display.blit(fb, x, y)
+
+    def draw_svg(self, svg, x=0, y=0, scale=1.0, color=1):
+        """
+        Zeichnet eine VEREINFACHTE SVG direkt auf dem ESP32.
+
+        Unterstuetzt wird nur eine Teilmenge von SVG (kein voller Renderer!):
+            <line>, <rect>, <circle>, <polyline>, <polygon>
+            <path> mit den Kommandos M/L/H/V/Z (absolut + relativ)
+
+        Bewusst NICHT unterstuetzt (Speicher/Rechenleistung):
+            - Kurven (C/S/Q/T/A) werden als Gerade zum Endpunkt angenaehert
+            - Transformationen, Stile/CSS, Farbverlaeufe, Fuellungen, Text
+        Fuer komplexe Grafiken stattdessen show_image() verwenden.
+
+        Args:
+            svg: SVG als String (Inhalt der Datei)
+            x: X-Offset, auf den die SVG-Koordinaten verschoben werden
+            y: Y-Offset
+            scale: Skalierungsfaktor fuer alle Koordinaten (Standard: 1.0)
+            color: 1 fuer an, 0 fuer aus (Standard: 1)
+
+        Hinweis: Rufen Sie show() auf, um die Aenderungen anzuzeigen
+
+        Beispiel:
+            svg = open('icon.svg').read()
+            oled.draw_svg(svg, 0, 0, scale=1.0)
+            oled.show()
+        """
+        if not self.enabled:
+            return
+
+        i = 0
+        n = len(svg)
+        while True:
+            lt = svg.find('<', i)
+            if lt == -1:
+                break
+            gt = svg.find('>', lt)
+            if gt == -1:
+                break
+            tag = svg[lt + 1:gt]
+            i = gt + 1
+
+            # Schliessende Tags, Kommentare, Deklarationen ueberspringen
+            if not tag or tag[0] in '/?!':
+                continue
+
+            # Elementname bestimmen
+            sp = 0
+            tlen = len(tag)
+            while sp < tlen and tag[sp] not in ' \t\r\n/':
+                sp += 1
+            name = tag[:sp].lower()
+            attrs = self._parse_svg_attrs(tag[sp:])
+
+            if name == 'line':
+                x1 = self._svg_f(attrs, 'x1')
+                y1 = self._svg_f(attrs, 'y1')
+                x2 = self._svg_f(attrs, 'x2')
+                y2 = self._svg_f(attrs, 'y2')
+                self.display.line(int(x + x1 * scale), int(y + y1 * scale),
+                                  int(x + x2 * scale), int(y + y2 * scale), color)
+            elif name == 'rect':
+                rx = self._svg_f(attrs, 'x')
+                ry = self._svg_f(attrs, 'y')
+                w = self._svg_f(attrs, 'width')
+                h = self._svg_f(attrs, 'height')
+                self.display.rect(int(x + rx * scale), int(y + ry * scale),
+                                  int(w * scale), int(h * scale), color)
+            elif name == 'circle':
+                cx = self._svg_f(attrs, 'cx')
+                cy = self._svg_f(attrs, 'cy')
+                r = self._svg_f(attrs, 'r')
+                self.draw_circle(int(x + cx * scale), int(y + cy * scale),
+                                 int(r * scale), color)
+            elif name in ('polyline', 'polygon'):
+                self._draw_svg_poly(attrs.get('points', ''), x, y, scale,
+                                    color, close=(name == 'polygon'))
+            elif name == 'path':
+                self._draw_svg_path(attrs.get('d', ''), x, y, scale, color)
+
+    def _parse_svg_attrs(self, s):
+        """Extrahiert attr="wert"-Paare aus einem Tag (MicroPython-tauglich)."""
+        attrs = {}
+        i = 0
+        n = len(s)
+        while i < n:
+            eq = s.find('=', i)
+            if eq == -1:
+                break
+            # Attributname rueckwaerts ab '=' lesen
+            j = eq - 1
+            while j >= 0 and s[j] in ' \t\r\n':
+                j -= 1
+            k = j
+            while k >= 0 and s[k] not in ' \t\r\n':
+                k -= 1
+            name = s[k + 1:j + 1].lower()
+            # Wert lesen (in Anfuehrungszeichen oder bis Whitespace)
+            v = eq + 1
+            while v < n and s[v] in ' \t\r\n':
+                v += 1
+            if v < n and s[v] in '"\'':
+                q = s[v]
+                end = s.find(q, v + 1)
+                if end == -1:
+                    break
+                attrs[name] = s[v + 1:end]
+                i = end + 1
+            else:
+                end = v
+                while end < n and s[end] not in ' \t\r\n':
+                    end += 1
+                attrs[name] = s[v:end]
+                i = end
+        return attrs
+
+    def _svg_f(self, attrs, key, default=0.0):
+        """Liest einen Attributwert als float (robust gegen Einheiten wie 'px')."""
+        val = attrs.get(key)
+        if val is None:
+            return default
+        num = ''
+        for ch in val:
+            if ch in '0123456789.+-eE':
+                num += ch
+            else:
+                break
+        try:
+            return float(num)
+        except ValueError:
+            return default
+
+    def _draw_svg_poly(self, points, ox, oy, scale, color, close=False):
+        """Zeichnet polyline/polygon aus 'x,y x,y ...'."""
+        coords = []
+        for tok in points.replace(',', ' ').split():
+            try:
+                coords.append(float(tok))
+            except ValueError:
+                pass
+        pts = []
+        for p in range(0, len(coords) - 1, 2):
+            pts.append((int(ox + coords[p] * scale), int(oy + coords[p + 1] * scale)))
+        for p in range(len(pts) - 1):
+            self.display.line(pts[p][0], pts[p][1], pts[p + 1][0], pts[p + 1][1], color)
+        if close and len(pts) > 1:
+            self.display.line(pts[-1][0], pts[-1][1], pts[0][0], pts[0][1], color)
+
+    def _tokenize_svg_path(self, d):
+        """Zerlegt das d-Attribut in Kommando- und Zahl-Tokens."""
+        tokens = []
+        num = ''
+        for ch in d:
+            if ch in 'MmLlHhVvZzCcSsQqTtAa':
+                if num:
+                    tokens.append(num)
+                    num = ''
+                tokens.append(ch)
+            elif ch in ' \t\r\n,':
+                if num:
+                    tokens.append(num)
+                    num = ''
+            elif ch == '-':
+                if num and num[-1] not in 'eE':
+                    tokens.append(num)
+                    num = '-'
+                else:
+                    num += ch
+            else:
+                num += ch
+        if num:
+            tokens.append(num)
+        return tokens
+
+    def _draw_svg_path(self, d, ox, oy, scale, color):
+        """Zeichnet <path> (M/L/H/V/Z; Kurven als Gerade zum Endpunkt)."""
+        tokens = self._tokenize_svg_path(d)
+        n = len(tokens)
+        i = 0
+        cx = cy = 0.0   # aktuelle Position
+        sx = sy = 0.0   # Startpunkt des Teilpfads
+        cmd = None
+
+        def draw_to(nx, ny):
+            self.display.line(int(ox + cx * scale), int(oy + cy * scale),
+                              int(ox + nx * scale), int(oy + ny * scale), color)
+
+        while i < n:
+            tok = tokens[i]
+            if len(tok) == 1 and tok in 'MmLlHhVvZzCcSsQqTtAa':
+                cmd = tok
+                i += 1
+                if cmd in 'Zz':
+                    draw_to(sx, sy)
+                    cx, cy = sx, sy
+                continue
+            if cmd is None:
+                i += 1
+                continue
+
+            rel = cmd.islower()
+            c = cmd.upper()
+            try:
+                if c == 'M':
+                    nx = float(tokens[i]); ny = float(tokens[i + 1]); i += 2
+                    if rel:
+                        nx += cx; ny += cy
+                    cx, cy = nx, ny
+                    sx, sy = nx, ny
+                    cmd = 'l' if rel else 'L'   # Folgepaare sind Linien
+                elif c == 'L':
+                    nx = float(tokens[i]); ny = float(tokens[i + 1]); i += 2
+                    if rel:
+                        nx += cx; ny += cy
+                    draw_to(nx, ny); cx, cy = nx, ny
+                elif c == 'H':
+                    nx = float(tokens[i]); i += 1
+                    if rel:
+                        nx += cx
+                    draw_to(nx, cy); cx = nx
+                elif c == 'V':
+                    ny = float(tokens[i]); i += 1
+                    if rel:
+                        ny += cy
+                    draw_to(cx, ny); cy = ny
+                elif c == 'C':           # cubic: Endpunkt = letztes Paar
+                    nx = float(tokens[i + 4]); ny = float(tokens[i + 5]); i += 6
+                    if rel:
+                        nx += cx; ny += cy
+                    draw_to(nx, ny); cx, cy = nx, ny
+                elif c in ('S', 'Q'):    # 4 Zahlen, Endpunkt = letztes Paar
+                    nx = float(tokens[i + 2]); ny = float(tokens[i + 3]); i += 4
+                    if rel:
+                        nx += cx; ny += cy
+                    draw_to(nx, ny); cx, cy = nx, ny
+                elif c == 'T':
+                    nx = float(tokens[i]); ny = float(tokens[i + 1]); i += 2
+                    if rel:
+                        nx += cx; ny += cy
+                    draw_to(nx, ny); cx, cy = nx, ny
+                elif c == 'A':           # arc: Endpunkt = letztes Paar
+                    nx = float(tokens[i + 5]); ny = float(tokens[i + 6]); i += 7
+                    if rel:
+                        nx += cx; ny += cy
+                    draw_to(nx, ny); cx, cy = nx, ny
+                else:
+                    i += 1
+            except (IndexError, ValueError):
+                break
 
 
 # Beispiel-Verwendung:
