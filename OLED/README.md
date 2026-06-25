@@ -98,13 +98,32 @@ praktikabel. Daher wird die SVG auf dem PC mit dem Hilfsskript
 `svg_zu_bitmap.py` in ein 1-Bit-Bitmap (MONO_VLSB, wie das Startlogo) gewandelt
 und auf dem Geraet nur noch mit `show_image()` angezeigt.
 
+Einmalig auf dem PC installieren (kein venv noetig):
 ```bash
-# Auf dem PC (einmalig):
-pip install cairosvg pillow
-python svg_zu_bitmap.py icon.svg -W 128 -H 64   # erzeugt icon_bitmap.py
+pip3 install --user cairosvg pillow
+# macOS zusaetzlich: brew install cairo
 ```
+
+Der Konverter laesst sich auf drei Arten nutzen – am bequemsten **ohne Terminal**
+direkt im Editor:
+
+1. **Editor / "Run"-Button:** in `svg_zu_bitmap.py` oben im Abschnitt
+   `EINSTELLUNGEN` die SVG-Datei eintragen und die Datei einfach ausfuehren
+   (gruener Pfeil in VS Code / Thonny / IDLE / Mu). Mit `VORSCHAU = True`
+   erscheint eine ASCII-Vorschau des Ergebnisses.
+2. **Als Funktion** in einem eigenen Skript oder der Python-Konsole:
+   ```python
+   from svg_zu_bitmap import konvertiere
+   konvertiere("icon.svg")                       # -> icon_bitmap.py
+   konvertiere("icon.svg", invert=True, vorschau=True)
+   ```
+3. **Kommandozeile** (optional):
+   ```bash
+   python3 svg_zu_bitmap.py icon.svg -W 128 -H 64
+   ```
+
+Das Ergebnis (`icon_bitmap.py`) auf den ESP32 kopieren und anzeigen:
 ```python
-# Auf dem ESP32 (icon_bitmap.py vorher kopieren):
 from icon_bitmap import BITMAP, WIDTH, HEIGHT
 oled.clear()
 oled.show_image(BITMAP, 0, 0, WIDTH, HEIGHT)
