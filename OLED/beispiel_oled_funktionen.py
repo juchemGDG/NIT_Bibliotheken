@@ -169,7 +169,6 @@ oled.print("Lade...", 0, 14, font='sans')
 
 for p in range(0, 101, 2):
     # Balkenbereich löschen und neu zeichnen
-    oled.fill_rect(10, 30, 110, 14, 0)
     oled.progress_bar(10, 30, 108, 12, p)
 
     # Prozent-Anzeige aktualisieren
