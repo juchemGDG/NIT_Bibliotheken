@@ -1,14 +1,14 @@
 """
-NIT Bibliothek: TOF - Entfernungsmessung mit VL53L0X (Time-of-Flight Laser)
+NIT Bibliothek: TOF - Entfernungsmessung mit VL53L0X und VL6180X
 Fuer ESP32 mit MicroPython
 
-Version:    1.0.0
+Version:    1.1.0
 Autor:      Volker Rust / nitbw
 Lizenz:     MIT (siehe LICENSE)
-Erstellt:   2026-03
+Erstellt:   2026-07
 
 Misst Entfernungen per Laser-Laufzeit (Time-of-Flight) ueber I2C.
-Bietet vier Messmodi, Filterfunktionen und Mehrfachsensor-Unterstuetzung.
+Unterstuetzt VL53L0X und VL6180X mit gemeinsamer API fuer Unterrichtsprojekte.
 """
 
 from machine import Pin, I2C
@@ -17,10 +17,11 @@ import time
 
 class TOF:
     """
-    Misst Entfernungen mit dem VL53L0X Time-of-Flight Lasersensor.
+    Misst Entfernungen mit VL53L0X oder VL6180X Time-of-Flight Sensoren.
 
     Unterstuetzte Hardware:
     - VL53L0X Breakout-Module (GY-530 und kompatible)
+    - VL6180X Breakout-Module
     - Mehrere Sensoren am selben I2C-Bus (ueber XSHUT-Pins)
 
     Schnittstelle: I2C
@@ -33,6 +34,11 @@ class TOF:
     LANGSTRECKE = 4
 
     _DEFAULT_ADDR = 0x29
+
+    # Sensor-Typen
+    SENSOR_AUTO = 'auto'
+    SENSOR_VL53L0X = 'vl53l0x'
+    SENSOR_VL6180X = 'vl6180x'
 
     # Register
     _SYSRANGE_START = 0x00
@@ -52,6 +58,18 @@ class TOF:
     _GPIO_HV_MUX_ACTIVE_HIGH = 0x84
     _IDENTIFICATION_MODEL_ID = 0xC0
     _ALGO_PHASECAL_CONFIG_TIMEOUT = 0x30
+
+    # VL6180X Register
+    _VL6180X_IDENTIFICATION_MODEL_ID = 0x000
+    _VL6180X_SYSTEM_FRESH_OUT_OF_RESET = 0x016
+    _VL6180X_SYSRANGE_START = 0x018
+    _VL6180X_SYSRANGE_INTERMEASUREMENT_PERIOD = 0x01B
+    _VL6180X_SYSRANGE_MAX_CONVERGENCE_TIME = 0x01C
+    _VL6180X_SYSTEM_INTERRUPT_CLEAR = 0x015
+    _VL6180X_RESULT_INTERRUPT_STATUS_GPIO = 0x04F
+    _VL6180X_RESULT_RANGE_STATUS = 0x04D
+    _VL6180X_RESULT_RANGE_VAL = 0x062
+    _VL6180X_I2C_SLAVE_DEVICE_ADDRESS = 0x212
 
     # Modus-Namen
     _MODI_NAMEN = {
@@ -85,7 +103,23 @@ class TOF:
         11: 'gueltig',
     }
 
-    def __init__(self, i2c, addr=0x29, xshut=None):
+    _STATUS_TEXTE_VL6180X = {
+        0: 'gueltig',
+        1: 'VCSEL kontinuierlich (intern)',
+        2: 'VCSEL Watchdog-Fehler',
+        3: 'VCSEL Watchdog-Test fehlgeschlagen',
+        4: 'PLL1 Lock fehlgeschlagen',
+        5: 'PLL2 Lock fehlgeschlagen',
+        6: 'frueher Konvergenz-Fehler',
+        7: 'maximale Konvergenzzeit ueberschritten',
+        8: 'Messbereich ausserhalb Gueltigkeit',
+        11: 'Rohdaten-Algorithmus unterlauf',
+        12: 'Rohdaten-Algorithmus ueberlauf',
+        13: 'Range-Algorithmus unterlauf',
+        14: 'Range-Algorithmus ueberlauf',
+    }
+
+    def __init__(self, i2c, addr=0x29, xshut=None, sensor_typ='auto'):
         """
         Initialisiert den VL53L0X Sensor.
 
@@ -93,12 +127,15 @@ class TOF:
             i2c: I2C-Bus-Objekt (z. B. I2C(0, scl=Pin(22), sda=Pin(21)))
             addr: I2C-Adresse (Standard: 0x29). Bei Mehrfachsensoren
                   jedem Sensor eine eigene Adresse geben.
-            xshut: GPIO-Pin-Nummer fuer XSHUT (optional, fuer Mehrfachsensoren).
-                   Wird HIGH gesetzt, um den Sensor aufzuwecken.
+                 xshut: GPIO-Pin-Nummer fuer XSHUT (optional, fuer Mehrfachsensoren).
+                     Wird HIGH gesetzt, um den Sensor aufzuwecken.
+                 sensor_typ: 'auto', 'vl53l0x' oder 'vl6180x'.
+                       Bei 'auto' wird der Sensor automatisch erkannt.
         """
         self._i2c = i2c
         self._addr = self._DEFAULT_ADDR
         self._modus = self.STANDARD
+        self._sensor_typ = self.SENSOR_AUTO
         self._timing_budget_us = 33000
         self._letzter_status = 0
 
@@ -120,15 +157,69 @@ class TOF:
                 "VL53L0X nicht gefunden an Adresse 0x{:02X}. "
                 "Verkabelung pruefen (SDA/SCL vertauscht?)".format(self._addr))
 
+        # Sensor-Typ waehlen bzw. erkennen
+        self._sensor_typ = self._waehle_sensor_typ(sensor_typ)
+
         # Adresse aendern falls gewuenscht (Sensor startet immer bei 0x29)
         if addr != self._DEFAULT_ADDR:
-            self._reg_schreiben(self._I2C_SLAVE_DEVICE_ADDRESS, addr & 0x7F)
+            self._set_adresse_intern(addr)
             self._addr = addr
             time.sleep_ms(10)
 
         # Sensor initialisieren
-        self._init_sensor()
+        if self._sensor_typ == self.SENSOR_VL53L0X:
+            self._init_sensor()
+        else:
+            self._init_sensor_vl6180x()
+
         self.set_modus(self.STANDARD)
+
+    def _waehle_sensor_typ(self, sensor_typ):
+        """Waehlt den Sensor-Typ anhand Parameter oder automatischer Erkennung."""
+        typ = str(sensor_typ).lower()
+        if typ not in (self.SENSOR_AUTO, self.SENSOR_VL53L0X, self.SENSOR_VL6180X):
+            raise ValueError("sensor_typ muss 'auto', 'vl53l0x' oder 'vl6180x' sein")
+
+        if typ == self.SENSOR_AUTO:
+            if self._ist_vl53l0x():
+                return self.SENSOR_VL53L0X
+            if self._ist_vl6180x():
+                return self.SENSOR_VL6180X
+            raise OSError(
+                "Unbekannter TOF-Sensor an Adresse 0x{:02X}. "
+                "Erwartet VL53L0X oder VL6180X.".format(self._addr))
+
+        if typ == self.SENSOR_VL53L0X and not self._ist_vl53l0x():
+            raise OSError("Sensor ist nicht als VL53L0X erkennbar")
+
+        if typ == self.SENSOR_VL6180X and not self._ist_vl6180x():
+            raise OSError("Sensor ist nicht als VL6180X erkennbar")
+
+        return typ
+
+    def _ist_vl53l0x(self):
+        """Prueft, ob der angeschlossene Sensor ein VL53L0X ist."""
+        try:
+            return self._reg_lesen(self._IDENTIFICATION_MODEL_ID) == 0xEE
+        except OSError:
+            return False
+
+    def _ist_vl6180x(self):
+        """Prueft, ob der angeschlossene Sensor ein VL6180X ist."""
+        try:
+            return self._reg_lesen_16addr(self._VL6180X_IDENTIFICATION_MODEL_ID) == 0xB4
+        except OSError:
+            return False
+
+    def _set_adresse_intern(self, neue_adresse):
+        """Setzt die I2C-Adresse passend zum aktiven Sensor-Typ."""
+        if self._sensor_typ == self.SENSOR_VL6180X:
+            self._reg_schreiben_16addr(
+                self._VL6180X_I2C_SLAVE_DEVICE_ADDRESS,
+                neue_adresse & 0x7F
+            )
+        else:
+            self._reg_schreiben(self._I2C_SLAVE_DEVICE_ADDRESS, neue_adresse & 0x7F)
 
     # ================================================================
     # I2C Hilfsfunktionen
@@ -150,6 +241,14 @@ class TOF:
         """Liest ein 16-Bit-Wort (Big Endian)."""
         daten = self._i2c.readfrom_mem(self._addr, reg, 2)
         return (daten[0] << 8) | daten[1]
+
+    def _reg_schreiben_16addr(self, reg, wert):
+        """Schreibt ein Byte in ein Register mit 16-Bit-Registeradresse."""
+        self._i2c.writeto_mem(self._addr, reg, bytes([wert & 0xFF]), addrsize=16)
+
+    def _reg_lesen_16addr(self, reg):
+        """Liest ein Byte aus einem Register mit 16-Bit-Registeradresse."""
+        return self._i2c.readfrom_mem(self._addr, reg, 1, addrsize=16)[0]
 
     # ================================================================
     # Sensor-Initialisierung
@@ -198,6 +297,32 @@ class TOF:
 
         # Referenz-Kalibrierung (VHV + Phase)
         self._ref_kalibrierung()
+
+    def _init_sensor_vl6180x(self):
+        """Fuehrt die Initialisierung fuer den VL6180X durch."""
+        if self._reg_lesen_16addr(self._VL6180X_IDENTIFICATION_MODEL_ID) != 0xB4:
+            raise OSError("VL6180X nicht gefunden an Adresse 0x{:02X}".format(self._addr))
+
+        if self._reg_lesen_16addr(self._VL6180X_SYSTEM_FRESH_OUT_OF_RESET) == 1:
+            tuning = [
+                (0x0207, 0x01), (0x0208, 0x01), (0x0096, 0x00), (0x0097, 0xFD),
+                (0x00E3, 0x00), (0x00E4, 0x04), (0x00E5, 0x02), (0x00E6, 0x01),
+                (0x00E7, 0x03), (0x00F5, 0x02), (0x00D9, 0x05), (0x00DB, 0xCE),
+                (0x00DC, 0x03), (0x00DD, 0xF8), (0x009F, 0x00), (0x00A3, 0x3C),
+                (0x00B7, 0x00), (0x00BB, 0x3C), (0x00B2, 0x09), (0x00CA, 0x09),
+                (0x0198, 0x01), (0x01B0, 0x17), (0x01AD, 0x00), (0x00FF, 0x05),
+                (0x0100, 0x05), (0x0199, 0x05), (0x01A6, 0x1B), (0x01AC, 0x3E),
+                (0x01A7, 0x1F), (0x0030, 0x00),
+            ]
+            for reg, wert in tuning:
+                self._reg_schreiben_16addr(reg, wert)
+
+            # Frisch-Reset-Flag zuruecksetzen
+            self._reg_schreiben_16addr(self._VL6180X_SYSTEM_FRESH_OUT_OF_RESET, 0x00)
+
+        # Single-Shot Betrieb mit Interrupt-Loeschung nach jeder Messung
+        self._reg_schreiben_16addr(self._VL6180X_SYSRANGE_INTERMEASUREMENT_PERIOD, 0x00)
+        self._reg_schreiben_16addr(self._VL6180X_SYSRANGE_MAX_CONVERGENCE_TIME, 30)
 
     def _spad_init(self):
         """SPAD-Referenz-Kalibrierung (Single Photon Avalanche Diodes)."""
@@ -357,6 +482,8 @@ class TOF:
 
     def _set_signal_rate_limit(self, mcps):
         """Setzt das Signal Rate Limit in MCPS (Mega Counts Per Second)."""
+        if self._sensor_typ != self.SENSOR_VL53L0X:
+            return
         wert = int(mcps * (1 << 7))  # Fixed-point 9.7 Format
         self._reg_schreiben_16(self._SIGNAL_RATE_LIMIT, wert)
 
@@ -410,6 +537,9 @@ class TOF:
             typ: 'pre' oder 'final'
             period_pclks: Periode in PCLKS (gerade Zahl: pre 12-18, final 8-14)
         """
+        if self._sensor_typ != self.SENSOR_VL53L0X:
+            return
+
         timeouts = self._get_sequence_step_timeouts()
         encoded_vcsel = (period_pclks >> 1) - 1
 
@@ -445,6 +575,13 @@ class TOF:
 
     def _set_timing_budget_us(self, budget_us):
         """Setzt das Measurement Timing Budget in Mikrosekunden."""
+        if self._sensor_typ != self.SENSOR_VL53L0X:
+            # Beim VL6180X wird das naechstliegende Konvergenzfenster gesetzt.
+            ms = max(10, min(63, int(budget_us // 1000)))
+            self._reg_schreiben_16addr(self._VL6180X_SYSRANGE_MAX_CONVERGENCE_TIME, ms)
+            self._timing_budget_us = ms * 1000
+            return
+
         enables = self._get_sequence_step_enables()
         timeouts = self._get_sequence_step_timeouts()
 
@@ -496,6 +633,20 @@ class TOF:
             print("Ungueltiger Modus. Verwende TOF.SCHNELL/STANDARD/GENAU/LANGSTRECKE")
             return
 
+        if self._sensor_typ == self.SENSOR_VL6180X:
+            if modus == self.SCHNELL:
+                self._set_timing_budget_us(15000)
+            elif modus == self.GENAU:
+                self._set_timing_budget_us(50000)
+            elif modus == self.LANGSTRECKE:
+                # VL6180X ist ein Kurzdistanzsensor; LANGSTRECKE emuliert genaueren Betrieb.
+                self._set_timing_budget_us(50000)
+            else:
+                self._set_timing_budget_us(30000)
+
+            self._modus = modus
+            return
+
         if modus == self.LANGSTRECKE:
             # Langstrecke: niedrigere Signalschwelle + laengere VCSEL-Pulse
             self._set_signal_rate_limit(0.1)
@@ -538,6 +689,32 @@ class TOF:
         Returns:
             int: Entfernung in mm oder -1 bei Fehler/Timeout
         """
+        if self._sensor_typ == self.SENSOR_VL6180X:
+            self._reg_schreiben_16addr(self._VL6180X_SYSRANGE_START, 0x01)
+
+            timeout = 100
+            while timeout > 0:
+                status = self._reg_lesen_16addr(self._VL6180X_RESULT_INTERRUPT_STATUS_GPIO)
+                if status & 0x04:
+                    break
+                timeout -= 1
+                time.sleep_ms(1)
+
+            if timeout == 0:
+                return -1
+
+            status_raw = self._reg_lesen_16addr(self._VL6180X_RESULT_RANGE_STATUS)
+            self._letzter_status = (status_raw >> 4) & 0x0F
+            distanz = self._reg_lesen_16addr(self._VL6180X_RESULT_RANGE_VAL)
+            self._reg_schreiben_16addr(self._VL6180X_SYSTEM_INTERRUPT_CLEAR, 0x07)
+
+            if self._letzter_status != 0:
+                return -1
+            if distanz <= 0 or distanz > 255:
+                return -1
+
+            return distanz
+
         # Mess-Sequenz starten
         self._reg_schreiben(0x80, 0x01)
         self._reg_schreiben(0xFF, 0x01)
@@ -613,6 +790,12 @@ class TOF:
         Returns:
             str: Statusbeschreibung (z. B. 'gueltig', 'Signal zu schwach')
         """
+        if self._sensor_typ == self.SENSOR_VL6180X:
+            return self._STATUS_TEXTE_VL6180X.get(
+                self._letzter_status,
+                'unbekannt ({})'.format(self._letzter_status)
+            )
+
         return self._STATUS_TEXTE.get(
             self._letzter_status,
             'unbekannt ({})'.format(self._letzter_status))
@@ -762,7 +945,7 @@ class TOF:
         Args:
             neue_adresse: Neue 7-Bit I2C-Adresse (z. B. 0x30)
         """
-        self._reg_schreiben(self._I2C_SLAVE_DEVICE_ADDRESS, neue_adresse & 0x7F)
+        self._set_adresse_intern(neue_adresse)
         self._addr = neue_adresse
         print("Neue Adresse: 0x{:02X}".format(neue_adresse))
 
@@ -786,6 +969,10 @@ class TOF:
             us: Timing Budget in Mikrosekunden
         """
         self._set_timing_budget_us(us)
+
+    def lese_sensor_typ(self):
+        """Gibt den erkannten Sensor-Typ zurueck ('vl53l0x' oder 'vl6180x')."""
+        return self._sensor_typ
 
     def lese_timing_budget(self):
         """

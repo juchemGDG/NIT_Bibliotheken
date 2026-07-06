@@ -1,25 +1,33 @@
-# NIT Bibliothek: TOF (VL53L0X)
+# NIT Bibliothek: TOF (VL53L0X + VL6180X)
 
 ## Beschreibung
 
-Diese Bibliothek ermoeglicht die Entfernungsmessung mit dem VL53L0X
-Time-of-Flight Lasersensor am ESP32 ueber I2C. Der Sensor misst
-Entfernungen per Laser-Lichtlaufzeit mit bis zu 2 Meter Reichweite.
-Vier Messmodi erlauben den Kompromiss zwischen Geschwindigkeit, Genauigkeit
-und Reichweite, mehrere Sensoren koennen am selben I2C-Bus betrieben werden.
+Diese Bibliothek ermoeglicht die Entfernungsmessung mit den Time-of-Flight
+Lasersensoren VL53L0X und VL6180X am ESP32 ueber I2C. Der VL53L0X deckt
+den Langbereich bis ca. 2 m ab, der VL6180X ist fuer Kurzdistanz bis
+ca. 20 cm optimiert. Die API ist fuer beide Sensoren identisch, mehrere
+Sensoren koennen am selben I2C-Bus betrieben werden.
 
 ## Features
 
 - Entfernungsmessung in mm und cm (Laser Time-of-Flight)
 - Rueckrechnung der Lichtlaufzeit in Nanosekunden (Physik-Bezug)
 - Statusabfrage der letzten Messung (Signal, Sigma, Phase)
+- Automatische Sensor-Erkennung (VL53L0X / VL6180X)
+- Optionale explizite Sensor-Auswahl per Konstruktorparameter
 
 Vier Messmodi:
 
 - **SCHNELL**: 20 ms, ~60 cm Reichweite, schnelle Hinderniserkennung
 - **STANDARD**: 33 ms, ~120 cm Reichweite, allgemeine Messung (Default)
 - **GENAU**: 200 ms, ~120 cm Reichweite, hohe Praezision
-- **LANGSTRECKE**: 33 ms, ~200 cm Reichweite, maximale Distanz
+- **LANGSTRECKE**: 33 ms, ~200 cm Reichweite, maximale Distanz (VL53L0X)
+
+Hinweis zu VL6180X:
+
+- Der VL6180X ist ein Kurzdistanzsensor (typisch bis ca. 200 mm)
+- Die Modi bleiben nutzbar, werden intern als unterschiedliche
+  Konvergenzzeiten umgesetzt
 
 Filterfunktionen (bekannt aus der Ultraschall-Bibliothek):
 
@@ -40,24 +48,26 @@ Sensor-Konfiguration:
 
 ## Hardware
 
-### VL53L0X Module
+### Unterstuetzte TOF-Module
 
 | Modul | Bemerkung |
 |---|---|
 | GY-VL53L0X (GY-530) | Gaengigstes Breakout, 3.3 V Regler + Levelshifter onboard |
 | Adafruit VL53L0X | Hochwertig, Qwiic/STEMMA-kompatibel |
 | CJMCU-530 | Guenstige China-Variante |
+| VL6180X Breakout | Kurzdistanz-TOF mit sehr guter Nahbereichsaufloesung |
 
 Alle Module arbeiten mit 3.3 V Logik am ESP32 (I2C-Levelshifter ist auf
 den meisten Breakouts bereits integriert).
 
-### Technische Daten
+### Technische Daten (Vergleich)
 
-- Messbereich: 30 mm bis ca. 2000 mm (abhaengig vom Modus und Zielobjekt)
-- Genauigkeit: ca. ±3 % (typisch, bei gutem Signal)
-- Messwinkel: 25° (Sichtfeld, Field of View)
-- I2C-Adresse: 0x29 (Standard), aenderbar per Software
-- Betriebsspannung: 2.6 V bis 3.5 V (Module meist mit 5 V-Eingang + Regler)
+| Merkmal | VL53L0X | VL6180X |
+|---|---|---|
+| Typischer Messbereich | 30 mm bis ca. 2000 mm | 5 mm bis ca. 200 mm |
+| Staerke | Mittlere bis lange Distanz | Praeziser Nahbereich |
+| I2C-Adresse (Default) | 0x29 | 0x29 |
+| Adressaenderung | Ja (fluechtig) | Ja (fluechtig) |
 
 ### XSHUT-Pin (fuer Mehrfachsensoren)
 
@@ -65,8 +75,8 @@ Der XSHUT-Pin schaltet den Sensor in den Hardware-Standby:
 - **LOW**: Sensor aus (nicht am I2C-Bus)
 - **HIGH oder offen**: Sensor aktiv
 
-Dies wird benoetigt, wenn mehrere VL53L0X am selben I2C-Bus betrieben
-werden sollen, da alle Sensoren mit derselben Standard-Adresse (0x29) starten.
+Dies wird benoetigt, wenn mehrere TOF-Sensoren am selben I2C-Bus betrieben
+werden sollen, da beide Typen mit derselben Standard-Adresse (0x29) starten.
 
 ## Anschluss
 
@@ -140,7 +150,7 @@ while True:
 ### Konstruktor
 
 ```python
-TOF(i2c, addr=0x29, xshut=None)
+TOF(i2c, addr=0x29, xshut=None, sensor_typ='auto')
 ```
 
 | Parameter | Typ | Standard | Beschreibung |
@@ -148,6 +158,7 @@ TOF(i2c, addr=0x29, xshut=None)
 | `i2c` | I2C | - | I2C-Bus-Objekt (z. B. `I2C(0, scl=Pin(22), sda=Pin(21))`) |
 | `addr` | int | 0x29 | I2C-Adresse des Sensors |
 | `xshut` | int/None | None | GPIO-Pin fuer XSHUT (optional, fuer Mehrfachsensoren) |
+| `sensor_typ` | str | 'auto' | `'auto'`, `'vl53l0x'` oder `'vl6180x'` |
 
 ### Methoden
 
@@ -157,6 +168,7 @@ TOF(i2c, addr=0x29, xshut=None)
 |---|---|---|
 | `set_modus(modus)` | - | Messmodus setzen (siehe Modus-Konstanten) |
 | `lese_modus()` | str | Aktuellen Modus als String zurueck ('schnell', 'standard', …) |
+| `lese_sensor_typ()` | str | Erkannten Sensor-Typ lesen (`'vl53l0x'` oder `'vl6180x'`) |
 
 #### Modus-Konstanten
 
@@ -166,6 +178,9 @@ TOF(i2c, addr=0x29, xshut=None)
 | `TOF.STANDARD` | 33 ms | ~120 cm | ±3 % | Allgemeine Messung (Default) |
 | `TOF.GENAU` | 200 ms | ~120 cm | ±1 % | Praezise Abstandsmessung |
 | `TOF.LANGSTRECKE` | 33 ms | ~200 cm | ±5 % | Maximale Reichweite |
+
+Hinweis: Die Reichweitenangaben gelten fuer VL53L0X. Beim VL6180X ist der
+Messbereich konstruktionsbedingt deutlich kuerzer.
 
 #### Grundmessungen
 
