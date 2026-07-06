@@ -221,6 +221,7 @@ Messbereich konstruktionsbedingt deutlich kuerzer.
 - `beispiel_tof.py`: Grundlegende Entfernungsmessung in mm/cm mit Statusanzeige
 - `beispiel_tof_modi.py`: Alle vier Messmodi vergleichen (Streuung, Reichweite)
 - `beispiel_tof_mehrere_sensoren.py`: Zwei Sensoren am selben I2C-Bus mit XSHUT
+- `beispiel_tof_vl6180x.py`: Kurzdistanz-Messung mit VL6180X und Zonen-Logik
 
 ### Zusatzbeispiele
 
