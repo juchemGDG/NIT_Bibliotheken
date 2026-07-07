@@ -3,7 +3,7 @@
 ## Beschreibung
 Die Bibliothek `nitbw_oled.py` steuert OLED-Displays mit SSD1306 oder SH1106 ueber I2C an. Neben Textausgabe bietet sie eine umfangreiche Grafik-API mit Linien, Rechtecken, Kreisen und Balkendiagrammen. Alle Zeichenoperationen laufen gepuffert und werden mit `show()` in einem Schritt auf dem Display aktualisiert.
 
-Aktueller Stand: Version 1.3.0
+Aktueller Stand: Version 1.5.0
 
 ## Features
 - Unterstuetzung fuer SSD1306 und SH1106 (128x64 und 128x32)
@@ -87,17 +87,40 @@ Wichtige Methoden:
 - `map(value, in_min, in_max, out_min, out_max)`
 - `progress_bar(...)` / `draw_bar(...)`
 - `show_image(data, x=0, y=0, width=None, height=None)` – `data` darf Modulname (str), Modul oder bytes sein
+- `show_svg(datei, x=0, y=0, scale=1.0, color=1, clear=True)` – SVG-Datei vom ESP32 laden und direkt rendern
+- `show_bmp(datei, x=0, y=0, clear=True)` – BMP-Datei vom ESP32 laden (1/24/32-Bit)
 - `slideshow(bilder, pause=2.0, loop=False, clear=True, x=0, y=0)`
-- `draw_svg(svg, x=0, y=0, scale=1.0, color=1)`
+- `draw_svg(svg, x=0, y=0, scale=1.0, color=1)` – SVG-String direkt zeichnen
 
-## SVG anzeigen
-Es gibt zwei Wege, eine SVG darzustellen:
+## SVG und Bilder anzeigen
 
-**Ansatz A – vorab in ein Bitmap wandeln (empfohlen fuer komplexe Grafiken).**
-SVG ist ein Vektorformat; ein vollstaendiger Renderer ist auf dem ESP32 nicht
-praktikabel. Daher wird die SVG auf dem PC mit dem Hilfsskript
-`svg_zu_bitmap.py` in ein 1-Bit-Bitmap (MONO_VLSB, wie das Startlogo) gewandelt
-und auf dem Geraet nur noch mit `show_image()` angezeigt.
+Es gibt **mehrere Wege**, Grafiken auf dem OLED darzustellen – vom schnellsten
+(Datei direkt vom ESP32 laden) bis zum robustesten (alle SVG-Features via
+PC-Konverter):
+
+### Weg 1: Datei direkt vom ESP32 laden (am einfachsten für die Schule)
+
+**SVG-Datei** (nur einfache Formen: Linien/Rechtecke/Kreise/Pfade):
+```python
+oled.show_svg('icon.svg')   # SVG liegt auf dem Board
+oled.show()
+```
+Unterstuetzt: `line`, `rect`, `circle`, `polyline`, `polygon`, `path` (M/L/H/V/Z).  
+**Nicht** unterstuetzt: Ellipsen, Fuellungen, Transformationen, Text.
+
+**BMP-Datei** (1-Bit/24-Bit/32-Bit):
+```python
+oled.show_bmp('foto.bmp')   # BMP liegt auf dem Board
+oled.show()
+```
+Farbbilder werden automatisch in Schwarz/Weiss umgewandelt (Schwellwert 128).  
+Fuer PNG/JPG: auf dem PC in BMP umwandeln (z.B. mit GIMP/Paint).
+
+### Weg 2: PC-Konverter (fuer komplexe SVGs mit allen Features)
+
+Wenn die SVG Ellipsen, Fuellungen, Transformationen oder Text enthaelt, nutze
+den PC-Konverter `svg_zu_bitmap.py` – er rendert die SVG komplett und erzeugt
+eine fertige `.py`-Datei fuer das Board.
 
 Einmalig auf dem PC installieren (kein venv noetig):
 ```bash
@@ -105,57 +128,47 @@ pip3 install --user cairosvg pillow
 # macOS zusaetzlich: brew install cairo
 ```
 
-Der Konverter laesst sich auf drei Arten nutzen – am bequemsten **ohne Terminal**
-direkt im Editor:
+**Nutzung (4 Wege, am einfachsten per GUI):**
 
-1. **Editor / "Run"-Button:** in `svg_zu_bitmap.py` oben im Abschnitt
-   `EINSTELLUNGEN` die SVG-Datei eintragen und die Datei einfach ausfuehren
-   (gruener Pfeil in VS Code / Thonny / IDLE / Mu). Mit `VORSCHAU = True`
-   erscheint eine ASCII-Vorschau des Ergebnisses.
-2. **Als Funktion** in einem eigenen Skript oder der Python-Konsole:
+1. **GUI per Doppelklick** (kein Terminal, keine Einstellungen):  
+   `svg_zu_bitmap.py` doppelklicken (macOS/Windows) oder in Python-Editor mit
+   "Run" starten → Datei-Dialog → SVG auswaehlen → fertig.
+2. **Editor / "Run"-Button:** in `svg_zu_bitmap.py` oben `EINSTELLUNGEN`
+   anpassen → Datei ausfuehren.
+3. **Als Funktion:**
    ```python
    from svg_zu_bitmap import konvertiere
-   konvertiere("icon.svg")                       # -> icon_bitmap.py
-   konvertiere("icon.svg", invert=True, vorschau=True)
+   konvertiere("icon.svg", vorschau=True)
    ```
-3. **Kommandozeile** (optional):
+4. **Kommandozeile:**
    ```bash
    python3 svg_zu_bitmap.py icon.svg -W 128 -H 64
    ```
 
-Das Ergebnis (`icon_bitmap.py`) auf den ESP32 kopieren und anzeigen – der
-Modulname genuegt, ein `from icon_bitmap import ...` ist nicht noetig:
+Das erzeugte `icon_bitmap.py` auf den ESP32 kopieren und anzeigen:
 ```python
-oled.clear()
 oled.show_image('icon_bitmap')   # WIDTH/HEIGHT werden automatisch gelesen
 oled.show()
 ```
 
-Mehrere Bilder nacheinander zeigt `slideshow()` – ohne Import oder
-`show_image()`/`show()` je Bild:
-```python
-oled.slideshow(['bild1_bitmap', 'bild2_bitmap', 'bild3_bitmap'],
-               pause=1.5, loop=True)   # loop=True = endlos, mit Reset beenden
-```
-
-**Ansatz B – einfache SVG direkt am Geraet zeichnen.**
-`draw_svg()` parst eine Teilmenge von SVG direkt auf dem ESP32:
-`line`, `rect`, `circle`, `polyline`, `polygon` und `path` (M/L/H/V/Z).
-Kurven (C/S/Q/T/A) werden als Gerade zum Endpunkt angenaehert; Transformationen,
-Stile, Fuellungen und Text werden nicht unterstuetzt.
+### Weg 3: SVG-String direkt zeichnen (für selbst erstellte einfache Formen)
 
 ```python
-svg = """
-<svg width="128" height="64">
-  <rect x="2" y="2" width="124" height="60"/>
-  <circle cx="32" cy="32" r="14"/>
-  <path d="M70 10 L120 10 L120 30 Z"/>
-</svg>
-"""
-oled.clear()
-oled.draw_svg(svg, x=0, y=0, scale=1.0)
+svg = """<svg width="128" height="64">
+  <rect x="10" y="10" width="50" height="30"/>
+  <circle cx="80" cy="32" r="20"/>
+</svg>"""
+oled.draw_svg(svg)
 oled.show()
 ```
+Wie bei `show_svg()` nur Linien/Rechtecke/Kreise/Pfade (M/L/H/V/Z).
+
+---
+
+**Zusammenfassung:**
+- **Schule/Einstieg:** `show_svg('...')` / `show_bmp('...')` — Dateien aufs Board, fertig.
+- **Komplexe SVGs** (Ellipsen, Fuellungen): PC-Konverter (GUI per Doppelklick).
+- **Programmierte Formen:** `draw_svg(svg_string)`.
 
 ## Beispiele
 Dateien im Ordner:

@@ -10,24 +10,28 @@ Benoetigt EINMALIG auf dem PC (kein venv noetig):
     (macOS zusaetzlich: brew install cairo)
 
 ------------------------------------------------------------------------------
-DREI WEGE, DEN KONVERTER ZU NUTZEN
+VIER WEGE, DEN KONVERTER ZU NUTZEN
 ------------------------------------------------------------------------------
-1) Editor / "Run"-Button (am einfachsten, kein Terminal):
+1) GUI (einfach per Doppelklick, kein Terminal, keine Einstellungen):
+   Datei 'svg_zu_bitmap.py' doppelklicken (macOS/Windows) oder in Python-Editor
+   mit "Run" starten. Datei-Dialog oeffnet sich -> SVG auswaehlen -> fertig.
+   ASCII-Vorschau zeigt das Ergebnis sofort im Fenster.
+
+2) Editor / "Run"-Button (kein Terminal, aber manuelle Einstellungen):
    Unten im Abschnitt "EINSTELLUNGEN" die SVG-Datei eintragen und die Datei
    einfach ausfuehren (gruener Pfeil in VS Code / Thonny / IDLE / Mu).
 
-2) Als Funktion in einem eigenen Skript oder in der Python-Konsole:
+3) Als Funktion in einem eigenen Skript oder in der Python-Konsole:
        from svg_zu_bitmap import konvertiere
        konvertiere("bild1.svg")                       # -> bild1_bitmap.py
        konvertiere("bild1.svg", invert=True, vorschau=True)
 
-3) Klassische Kommandozeile:
+4) Klassische Kommandozeile:
        python3 svg_zu_bitmap.py bild1.svg
        python3 svg_zu_bitmap.py bild1.svg -W 64 -H 64 --invert
 
 Auf dem ESP32:
-    from bild1_bitmap import BITMAP, WIDTH, HEIGHT
-    oled.show_image(BITMAP, 0, 0, WIDTH, HEIGHT)
+    oled.show_image('bild1_bitmap')   # Modulname genuegt (v1.4.0+)
     oled.show()
 """
 
@@ -199,12 +203,83 @@ def _cli():
                 vorschau=args.vorschau)
 
 
+def _gui():
+    """Einfache GUI (Datei-Dialog) fuer Schueler ohne Terminal-Erfahrung."""
+    try:
+        import tkinter as tk
+        from tkinter import filedialog, messagebox
+    except ImportError:
+        print("tkinter fehlt (sollte in Standard-Python enthalten sein).")
+        return
+
+    root = tk.Tk()
+    root.title("SVG -> OLED Bitmap Konverter")
+    root.geometry("500x400")
+
+    # Status-Label
+    status = tk.StringVar(value="SVG-Datei auswaehlen...")
+    tk.Label(root, textvariable=status, wraplength=450, justify="left", height=3).pack(pady=10)
+
+    # Vorschau-Textfeld
+    vorschau_text = tk.Text(root, height=12, width=64, font=("Courier", 8))
+    vorschau_text.pack(pady=10)
+
+    # Einstellungen
+    frame_opts = tk.Frame(root)
+    frame_opts.pack(pady=5)
+    var_invert = tk.BooleanVar(value=False)
+    tk.Checkbutton(frame_opts, text="Hell/Dunkel tauschen", variable=var_invert).pack(side="left", padx=5)
+    var_breite = tk.IntVar(value=128)
+    var_hoehe = tk.IntVar(value=64)
+    tk.Label(frame_opts, text="Breite:").pack(side="left")
+    tk.Entry(frame_opts, textvariable=var_breite, width=5).pack(side="left", padx=2)
+    tk.Label(frame_opts, text="Hoehe:").pack(side="left")
+    tk.Entry(frame_opts, textvariable=var_hoehe, width=5).pack(side="left", padx=2)
+
+    def datei_waehlen():
+        pfad = filedialog.askopenfilename(
+            title="SVG-Datei auswaehlen",
+            filetypes=[("SVG-Dateien", "*.svg"), ("Alle Dateien", "*.*")])
+        if not pfad:
+            return
+        status.set("Konvertiere " + os.path.basename(pfad) + " ...")
+        root.update()
+        try:
+            buf = svg_zu_mono(pfad, var_breite.get(), var_hoehe.get(), invert=var_invert.get())
+            ausgabe = os.path.splitext(os.path.basename(pfad))[0] + "_bitmap.py"
+            ausgabe = os.path.join(os.path.dirname(pfad), ausgabe)
+            literal = _format_bytearray(buf)
+            with open(ausgabe, "w") as f:
+                f.write('"""Erzeugt aus %s mit svg_zu_bitmap.py (MONO_VLSB)."""\n\n'
+                        % os.path.basename(pfad))
+                f.write("WIDTH = %d\n" % var_breite.get())
+                f.write("HEIGHT = %d\n\n" % var_hoehe.get())
+                f.write("BITMAP = (\n%s\n)\n" % literal)
+            # ASCII-Vorschau
+            vorschau_text.delete("1.0", "end")
+            vorschau_text.insert("1.0", ascii_vorschau(buf, var_breite.get(), var_hoehe.get()))
+            status.set("Fertig: " + ausgabe + "\nAuf den ESP32 kopieren und mit oled.show_image('" +
+                       os.path.splitext(os.path.basename(ausgabe))[0] + "') anzeigen.")
+            messagebox.showinfo("Fertig", "Datei erzeugt:\n" + ausgabe)
+        except Exception as e:
+            status.set("Fehler: " + str(e))
+            messagebox.showerror("Fehler", str(e))
+
+    tk.Button(root, text="SVG-Datei waehlen und konvertieren", command=datei_waehlen, height=2).pack(pady=10)
+
+    root.mainloop()
+
+
 if __name__ == "__main__":
     import sys
     if len(sys.argv) > 1:
         # Mit Argumenten -> Kommandozeilen-Modus
         _cli()
     else:
-        # Ohne Argumente (z.B. "Run"-Button) -> EINSTELLUNGEN oben verwenden
-        konvertiere(EINGABE, BREITE, HOEHE, ausgabe=AUSGABE, name=NAME,
-                    invert=INVERT, vorschau=VORSCHAU)
+        # Ohne Argumente (z.B. Doppelklick/Run) -> GUI starten
+        try:
+            _gui()
+        except Exception:
+            # Falls tkinter fehlt/nicht anzeigbar -> Fallback auf EINSTELLUNGEN
+            konvertiere(EINGABE, BREITE, HOEHE, ausgabe=AUSGABE, name=NAME,
+                        invert=INVERT, vorschau=VORSCHAU)

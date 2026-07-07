@@ -2,7 +2,7 @@
 NIT Bibliothek: OLED - Grafiktreiber fuer SSD1306 und SH1106 Displays
 Fuer ESP32 mit MicroPython
 
-Version:    1.4.0
+Version:    1.5.0
 Autor:      Stephan Juchem, Volker Rust / nitbw
 Lizenz:     MIT (siehe LICENSE)
 Erstellt:   2026-03
@@ -888,6 +888,128 @@ class OLED:
                 time.sleep(pause)
             if not loop:
                 break
+
+    def show_svg(self, datei, x=0, y=0, scale=1.0, color=1, clear=True):
+        """
+        Laedt eine SVG-Datei vom ESP32 und zeichnet sie direkt.
+
+        Bequemer Weg fuer einfache SVGs: Datei aufs Board kopieren, dann
+        show_svg('icon.svg') aufrufen – ohne PC-Konverter. Unterstuetzt die
+        gleiche SVG-Teilmenge wie draw_svg() (line/rect/circle/polyline/polygon/
+        path mit M/L/H/V/Z; keine Ellipsen/Fuellungen/Transformationen).
+
+        Fuer komplexe Grafiken mit allen SVG-Features stattdessen den PC-
+        Konverter svg_zu_bitmap.py verwenden -> show_image('..._bitmap').
+
+        Args:
+            datei: Pfad zur SVG-Datei auf dem ESP32 (z.B. 'icon.svg')
+            x, y: Position (Standard: 0, 0)
+            scale: Skalierungsfaktor (Standard: 1.0)
+            color: 1 fuer an, 0 fuer aus (Standard: 1)
+            clear: True = Puffer vorher loeschen (Standard: True)
+
+        Hinweis: Rufen Sie show() auf, um die Aenderungen anzuzeigen
+
+        Beispiel:
+            oled.show_svg('smiley.svg')
+            oled.show()
+        """
+        if not self.enabled:
+            return
+        if clear:
+            self.display.fill(0)
+        with open(datei, 'r') as f:
+            svg = f.read()
+        self.draw_svg(svg, x, y, scale, color)
+
+    def show_bmp(self, datei, x=0, y=0, clear=True):
+        """
+        Laedt eine BMP-Datei vom ESP32 und zeigt sie an.
+
+        Bequemer Weg fuer Fotos/Grafiken: BMP-Datei aufs Board kopieren, dann
+        show_bmp('foto.bmp') aufrufen – ohne PC-Konverter. Unterstuetzt
+        monochromes (1-Bit) BMP und wandelt Farbbilder automatisch in
+        Schwarz/Weiss um (Schwellwert 128).
+
+        Fuer andere Formate (PNG/JPG) zuerst auf dem PC in BMP umwandeln oder
+        den PC-Konverter svg_zu_bitmap.py nutzen.
+
+        Args:
+            datei: Pfad zur BMP-Datei auf dem ESP32 (z.B. 'foto.bmp')
+            x, y: Position der oberen linken Ecke (Standard: 0, 0)
+            clear: True = Puffer vorher loeschen (Standard: True)
+
+        Hinweis: Rufen Sie show() auf, um die Aenderungen anzuzeigen
+
+        Beispiel:
+            oled.show_bmp('logo.bmp')
+            oled.show()
+        """
+        if not self.enabled:
+            return
+        if clear:
+            self.display.fill(0)
+        data, w, h = self._bmp_laden(datei)
+        self.show_image(data, x, y, w, h)
+
+    def _bmp_laden(self, datei):
+        """Liest eine BMP-Datei und gibt (MONO_VLSB-bytes, breite, hoehe) zurueck."""
+        with open(datei, 'rb') as f:
+            # BMP-Header pruefen (14 Bytes)
+            if f.read(2) != b'BM':
+                raise ValueError("Keine gueltige BMP-Datei (fehlt 'BM'-Signatur)")
+            f.read(8)  # Dateigroesse + reserviert ueberspringen
+            pixel_offset = int.from_bytes(f.read(4), 'little')
+
+            # DIB-Header (min. 40 Bytes)
+            dib_size = int.from_bytes(f.read(4), 'little')
+            w = int.from_bytes(f.read(4), 'little')
+            h = int.from_bytes(f.read(4), 'little')
+            f.read(2)  # Planes
+            bpp = int.from_bytes(f.read(2), 'little')
+
+            # Zur Pixeldaten-Position springen
+            f.seek(pixel_offset)
+
+            # Pixeldaten lesen und in MONO_VLSB umwandeln
+            pages = (h + 7) // 8
+            buf = bytearray(pages * w)
+
+            # BMP speichert Zeilen von unten nach oben, jede Zeile auf 4-Byte-Grenze gepaddet
+            row_bytes = (w * bpp + 7) // 8
+            padding = (4 - (row_bytes % 4)) % 4
+
+            for row in range(h):
+                y = h - 1 - row  # BMP von unten nach oben
+                row_data = f.read(row_bytes)
+                f.read(padding)
+
+                for x in range(w):
+                    # Pixel extrahieren (1-Bit: direkt, 24/32-Bit: Schwellwert)
+                    if bpp == 1:
+                        byte_idx = x // 8
+                        bit_idx = 7 - (x % 8)
+                        pixel = (row_data[byte_idx] >> bit_idx) & 1
+                    elif bpp == 24:
+                        idx = x * 3
+                        r, g, b = row_data[idx:idx+3]
+                        gray = (r + g + b) // 3
+                        pixel = 1 if gray < 128 else 0  # dunkel = an
+                    elif bpp == 32:
+                        idx = x * 4
+                        r, g, b = row_data[idx:idx+3]
+                        gray = (r + g + b) // 3
+                        pixel = 1 if gray < 128 else 0
+                    else:
+                        raise ValueError("Nicht unterstuetztes BMP-Format (bpp=%d)" % bpp)
+
+                    # In MONO_VLSB-Buffer schreiben
+                    page = y // 8
+                    bit = y % 8
+                    if pixel:
+                        buf[page * w + x] |= (1 << bit)
+
+            return bytes(buf), w, h
 
     def draw_svg(self, svg, x=0, y=0, scale=1.0, color=1):
         """

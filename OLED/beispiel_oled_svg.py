@@ -1,16 +1,19 @@
 """
-NIT Bibliothek: OLED - Beispiel SVG / Bitmap-Anzeige
+NIT Bibliothek: OLED - Beispiel SVG / Bilder anzeigen
 
-Zeigt die beiden Wege, eine SVG auf dem OLED darzustellen:
+Zeigt die drei Wege, Grafiken auf dem OLED darzustellen:
 
-  Ansatz A (empfohlen fuer komplexe Grafiken):
-      SVG vorab auf dem PC mit 'svg_zu_bitmap.py' in ein MONO_VLSB-Bitmap
-      wandeln und mit oled.show_image(...) anzeigen.
+  Weg 1 (am einfachsten fuer die Schule):
+      SVG/BMP-Datei direkt vom ESP32 laden und anzeigen.
+      SVG: nur einfache Formen (line/rect/circle/path), keine Ellipsen/Fuellungen.
+      BMP: 1-Bit/24-Bit/32-Bit, Farbe -> Schwarz/Weiss.
 
-  Ansatz B (einfache, selbst gezeichnete Formen direkt am Geraet):
-      SVG-String mit oled.draw_svg(...) parsen und zeichnen.
-      Unterstuetzt: line, rect, circle, polyline, polygon und
-      path (M/L/H/V/Z). Kurven werden als Gerade angenaehert.
+  Weg 2 (fuer komplexe SVGs mit allen Features):
+      SVG vorab auf dem PC mit 'svg_zu_bitmap.py' (GUI per Doppelklick) in
+      ein MONO_VLSB-Bitmap wandeln und mit oled.show_image() anzeigen.
+
+  Weg 3 (fuer selbst programmierte Formen):
+      SVG-String mit oled.draw_svg() direkt zeichnen.
 """
 
 from machine import I2C, Pin
@@ -21,7 +24,42 @@ oled = OLED(i2c, chip='ssd1306', enabled=True)
 
 
 # ---------------------------------------------------------------
-# Ansatz B: einfache SVG direkt zeichnen
+# Weg 1a: SVG-Datei direkt vom ESP32 laden (einfache Formen)
+# ---------------------------------------------------------------
+# SVG-Datei 'icon.svg' aufs Board kopieren, dann:
+# oled.show_svg('icon.svg')
+# oled.show()
+
+
+# ---------------------------------------------------------------
+# Weg 1b: BMP-Datei direkt vom ESP32 laden
+# ---------------------------------------------------------------
+# BMP-Datei 'foto.bmp' aufs Board kopieren, dann:
+# oled.show_bmp('foto.bmp')
+# oled.show()
+
+
+# ---------------------------------------------------------------
+# Weg 2: PC-Konverter fuer komplexe SVGs (alle Features)
+# ---------------------------------------------------------------
+# Zuerst auf dem PC erzeugen (GUI per Doppelklick):
+#   svg_zu_bitmap.py doppelklicken -> SVG auswaehlen -> fertig
+# erzeugt z.B. 'icon_bitmap.py' -> auf den ESP32 kopieren, dann:
+#
+# Einzelbild (Modulname genuegt, kein 'from ... import' noetig):
+# oled.show_image('icon_bitmap')
+# oled.show()
+
+
+# ---------------------------------------------------------------
+# Mehrere Bilder als Diashow (kein Import/show pro Bild noetig)
+# ---------------------------------------------------------------
+# oled.slideshow(['bild1_bitmap', 'bild2_bitmap', 'bild3_bitmap'],
+#                pause=1.5, loop=True)
+
+
+# ---------------------------------------------------------------
+# Weg 3: SVG-String direkt zeichnen (selbst programmierte Formen)
 # ---------------------------------------------------------------
 svg = """
 <svg xmlns="http://www.w3.org/2000/svg" width="128" height="64">
