@@ -120,29 +120,36 @@ Fuer PNG/JPG: auf dem PC in BMP umwandeln (z.B. mit GIMP/Paint).
 
 Wenn die SVG Ellipsen, Fuellungen, Transformationen oder Text enthaelt, nutze
 den PC-Konverter `svg_zu_bitmap.py` – er rendert die SVG komplett und erzeugt
-eine fertige `.py`-Datei fuer das Board.
+eine fertige `.py`-Datei fuer das Board. Alternativ kann das Motiv vorher als
+PNG/JPG exportiert werden; diese Rasterbilder verarbeitet der Konverter auch
+ohne Cairo.
 
 Einmalig auf dem PC installieren (kein venv noetig):
 ```bash
-pip3 install --user cairosvg pillow
-# macOS zusaetzlich: brew install cairo
+pip3 install --user pillow
+# Nur fuer direkte SVG-Unterstuetzung zusaetzlich:
+pip3 install --user cairosvg
+# macOS fuer SVG oft zusaetzlich:
+brew install cairo
 ```
 
 **Nutzung (4 Wege, am einfachsten per GUI):**
 
 1. **GUI per Doppelklick** (kein Terminal, keine Einstellungen):  
    `svg_zu_bitmap.py` doppelklicken (macOS/Windows) oder in Python-Editor mit
-   "Run" starten → Datei-Dialog → SVG auswaehlen → fertig.
+   "Run" starten → Datei-Dialog → SVG/PNG/JPG auswaehlen → fertig.
 2. **Editor / "Run"-Button:** in `svg_zu_bitmap.py` oben `EINSTELLUNGEN`
    anpassen → Datei ausfuehren.
 3. **Als Funktion:**
    ```python
    from svg_zu_bitmap import konvertiere
    konvertiere("icon.svg", vorschau=True)
+   konvertiere("icon.png", vorschau=True)
    ```
 4. **Kommandozeile:**
    ```bash
    python3 svg_zu_bitmap.py icon.svg -W 128 -H 64
+   python3 svg_zu_bitmap.py icon.png -W 128 -H 64
    ```
 
 Das erzeugte `icon_bitmap.py` auf den ESP32 kopieren und anzeigen:

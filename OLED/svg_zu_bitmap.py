@@ -6,15 +6,16 @@ in nitbw_oled.py) und erzeugt eine fertige .py-Datei, die auf den ESP32 kopiert
 und mit oled.show_image(...) angezeigt werden kann.
 
 Benoetigt EINMALIG auf dem PC (kein venv noetig):
-    pip3 install --user cairosvg pillow
-    (macOS zusaetzlich: brew install cairo)
+    Fuer PNG/JPG/WebP/BMP:  pip3 install --user pillow
+    Fuer SVG zusaetzlich:    pip3 install --user cairosvg
+    (macOS fuer SVG zusaetzlich oft: brew install cairo)
 
 ------------------------------------------------------------------------------
 VIER WEGE, DEN KONVERTER ZU NUTZEN
 ------------------------------------------------------------------------------
 1) GUI (einfach per Doppelklick, kein Terminal, keine Einstellungen):
-   Datei 'svg_zu_bitmap.py' doppelklicken (macOS/Windows) oder in Python-Editor
-   mit "Run" starten. Datei-Dialog oeffnet sich -> SVG auswaehlen -> fertig.
+    Datei 'svg_zu_bitmap.py' doppelklicken (macOS/Windows) oder in Python-Editor
+    mit "Run" starten. Datei-Dialog oeffnet sich -> SVG/PNG/JPG auswaehlen -> fertig.
    ASCII-Vorschau zeigt das Ergebnis sofort im Fenster.
 
 2) Editor / "Run"-Button (kein Terminal, aber manuelle Einstellungen):
@@ -23,7 +24,8 @@ VIER WEGE, DEN KONVERTER ZU NUTZEN
 
 3) Als Funktion in einem eigenen Skript oder in der Python-Konsole:
        from svg_zu_bitmap import konvertiere
-       konvertiere("bild1.svg")                       # -> bild1_bitmap.py
+    konvertiere("bild1.svg")                       # -> bild1_bitmap.py
+    konvertiere("bild1.png")                       # -> bild1_bitmap.py
        konvertiere("bild1.svg", invert=True, vorschau=True)
 
 4) Klassische Kommandozeile:
@@ -54,13 +56,13 @@ NAME     = "BITMAP"      # Variablenname in der erzeugten .py-Datei
 
 def svg_zu_mono(svg_pfad, breite=128, hoehe=64, schwelle=128, invert=False):
     """
-    Rendert eine SVG und gibt das Bild als MONO_VLSB-bytearray zurueck.
+    Rendert eine SVG oder ein Rasterbild und gibt MONO_VLSB-bytearray zurueck.
 
     Reine Funktion ohne Datei-Ausgabe - praktisch, um das Ergebnis direkt
     weiterzuverarbeiten.
 
     Args:
-        svg_pfad: Pfad zur SVG-Datei
+        svg_pfad: Pfad zur SVG-, PNG-, JPG-, WebP- oder BMP-Datei
         breite, hoehe: Zielgroesse in Pixeln
         schwelle: Helligkeits-Schwellwert 0-255 (dunkler -> "an")
         invert: True tauscht hell/dunkel
@@ -68,7 +70,7 @@ def svg_zu_mono(svg_pfad, breite=128, hoehe=64, schwelle=128, invert=False):
     Returns:
         bytearray im MONO_VLSB-Format (breite*hoehe/8 Bytes)
     """
-    gray = _render_svg(svg_pfad, breite, hoehe)
+    gray = _render_input(svg_pfad, breite, hoehe)
     return _image_to_mono_vlsb(gray, schwelle, invert)
 
 
@@ -127,15 +129,8 @@ def ascii_vorschau(buf, breite, hoehe):
 # interne Helfer
 # ---------------------------------------------------------------------------
 
-def _render_svg(svg_pfad, breite, hoehe):
-    """Rendert die SVG auf weissem Hintergrund und gibt ein L-Mode-PIL-Image."""
-    try:
-        import cairosvg
-    except ImportError:
-        raise SystemExit(
-            "Fehler: 'cairosvg' fehlt.\n"
-            "  Installieren: pip3 install --user cairosvg pillow\n"
-            "  macOS zusaetzlich: brew install cairo")
+def _render_input(svg_pfad, breite, hoehe):
+    """Rendert SVG oder Rasterbild auf weissem Hintergrund als L-Mode-PIL-Image."""
     try:
         from PIL import Image
     except ImportError:
@@ -146,8 +141,28 @@ def _render_svg(svg_pfad, breite, hoehe):
     if not os.path.exists(svg_pfad):
         raise SystemExit("Fehler: SVG-Datei nicht gefunden: %s" % svg_pfad)
 
-    png_bytes = cairosvg.svg2png(url=svg_pfad, output_width=breite, output_height=hoehe)
-    img = Image.open(io.BytesIO(png_bytes)).convert("RGBA")
+    ext = os.path.splitext(svg_pfad)[1].lower()
+
+    if ext == ".svg":
+        try:
+            import cairosvg
+        except ImportError:
+            raise SystemExit(
+                "Fehler: Fuer SVG-Dateien wird 'cairosvg' benoetigt.\n"
+                "  Ohne Cairo-Setup: SVG einmal als PNG exportieren und diese PNG laden.\n"
+                "  Mit SVG-Support installieren: pip3 install --user cairosvg\n"
+                "  macOS zusaetzlich oft: brew install cairo")
+
+        png_bytes = cairosvg.svg2png(
+            url=svg_pfad,
+            output_width=breite,
+            output_height=hoehe,
+        )
+        img = Image.open(io.BytesIO(png_bytes)).convert("RGBA")
+    else:
+        img = Image.open(svg_pfad).convert("RGBA")
+        img = img.resize((breite, hoehe), Image.LANCZOS)
+
     # Transparenz auf weissem Hintergrund zusammenfuehren
     bg = Image.new("RGBA", img.size, (255, 255, 255, 255))
     bg.alpha_composite(img)
@@ -188,8 +203,8 @@ def _format_bytearray(buf, per_line=16):
 def _cli():
     """Klassische Kommandozeilen-Schnittstelle (optional)."""
     import argparse
-    ap = argparse.ArgumentParser(description="SVG -> MONO_VLSB Bitmap fuer nitbw_oled")
-    ap.add_argument("svg", help="Pfad zur SVG-Datei")
+    ap = argparse.ArgumentParser(description="SVG/PNG/JPG -> MONO_VLSB Bitmap fuer nitbw_oled")
+    ap.add_argument("svg", help="Pfad zur SVG-, PNG-, JPG-, WebP- oder BMP-Datei")
     ap.add_argument("-W", "--width", type=int, default=128, help="Breite (Standard: 128)")
     ap.add_argument("-H", "--height", type=int, default=64, help="Hoehe (Standard: 64)")
     ap.add_argument("-t", "--threshold", type=int, default=128, help="Schwellwert 0-255")
@@ -238,8 +253,13 @@ def _gui():
 
     def datei_waehlen():
         pfad = filedialog.askopenfilename(
-            title="SVG-Datei auswaehlen",
-            filetypes=[("SVG-Dateien", "*.svg"), ("Alle Dateien", "*.*")])
+            title="Grafikdatei auswaehlen",
+            filetypes=[
+                ("Unterstuetzte Dateien", "*.svg *.png *.jpg *.jpeg *.webp *.bmp"),
+                ("SVG-Dateien", "*.svg"),
+                ("Rasterbilder", "*.png *.jpg *.jpeg *.webp *.bmp"),
+                ("Alle Dateien", "*.*"),
+            ])
         if not pfad:
             return
         status.set("Konvertiere " + os.path.basename(pfad) + " ...")
