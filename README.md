@@ -25,6 +25,7 @@ Konventionen fuer neue Bibliotheken sind in [`.github/copilot-instructions.md`](
 | ESPNOW | `ESPNOW/nitbw_espnow.py` | `ESPNOW/beispiel_espnow.py`, `ESPNOW/beispiel_espnow_json.py` | 1.0.0 |
 | MQTT | `MQTT/nitbw_mqtt.py` | `MQTT/beispiel_mqtt.py`, `MQTT/beispiel_mqtt_reconnect.py` | 1.0.0 |
 | MP3 | `MP3/nitbw_mp3.py` | `MP3/beispiel_mp3.py`, `MP3/beispiel_mp3_ordner.py` | 1.0.0 |
+| INA219 | `INA219/nitbw_ina219.py` | `INA219/beispiel_ina219.py`, `INA219/beispiel_ina219_lastprofil.py` | 1.0.0 |
 | NITON | `NITON/nitbw_niton.py` | `NITON/beispiel_niton.py`, `NITON/beispiel_niton_listen.py` | 2.1.1 |
 | TOENE | `TOENE/nitbw_toene.py` | `TOENE/beispiel_toene.py`, `TOENE/beispiel_toene_lied.py` | 1.2.0 |
 | Puls | `PULS/nitbw_puls.py` | `PULS/beispiel_puls.py`, `PULS/beispiel_puls_bpm.py` | 1.0.0 |
@@ -131,6 +132,7 @@ print(sensor.read_all())
 - `ESPNOW/README.md`
 - `MQTT/README.md`
 - `MP3/README.md`
+- `INA219/README.md`
 - `AS7262/README.md`
 - `NITON/README.md`
 - `TOENE/README.md`
