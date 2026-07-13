@@ -29,6 +29,7 @@ Konventionen fuer neue Bibliotheken sind in [`.github/copilot-instructions.md`](
 | TOENE | `TOENE/nitbw_toene.py` | `TOENE/beispiel_toene.py`, `TOENE/beispiel_toene_lied.py` | 1.2.0 |
 | Puls | `PULS/nitbw_puls.py` | `PULS/beispiel_puls.py`, `PULS/beispiel_puls_bpm.py` | 1.0.0 |
 | STEPPER | `STEPPER/nitbw_stepper.py` | `STEPPER/beispiel_stepper_uln.py`, `STEPPER/beispiel_stepper_dir.py` | 1.0.0 |
+| GY61 | `GY61/nitbw_gy61.py` | `GY61/beispiel_gy61.py`, `GY61/beispiel_gy61_kalibrierung.py` | 1.0.0 |
 | MPU6050 | `MPU6050/nitbw_mpu6050.py` | `MPU6050/beispiel_mpu6050.py`, `MPU6050/beispiel_mpu6050_neigung.py` | 1.0.0 |
 
 ## Schnellstart-Muster
@@ -135,6 +136,7 @@ print(sensor.read_all())
 - `TOENE/README.md`
 - `PULS/README.md`
 - `STEPPER/README.md`
+- `GY61/README.md`
 - `MPU6050/README.md`
 
 ## Lizenz
