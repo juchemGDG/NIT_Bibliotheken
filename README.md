@@ -33,6 +33,7 @@ Konventionen fuer neue Bibliotheken sind in [`.github/copilot-instructions.md`](
 | STEPPER | `STEPPER/nitbw_stepper.py` | `STEPPER/beispiel_stepper_uln.py`, `STEPPER/beispiel_stepper_dir.py` | 1.0.0 |
 | GY61 | `GY61/nitbw_gy61.py` | `GY61/beispiel_gy61.py`, `GY61/beispiel_gy61_kalibrierung.py` | 1.0.0 |
 | MPU6050 | `MPU6050/nitbw_mpu6050.py` | `MPU6050/beispiel_mpu6050.py`, `MPU6050/beispiel_mpu6050_neigung.py` | 1.0.0 |
+| HX711AD | `HX711AD/nitbw_hx711ad.py` | `HX711AD/beispiel_hx711ad.py`, `HX711AD/beispiel_hx711ad_kalibrierung.py` | 1.0.0 |
 
 ## Schnellstart-Muster
 
@@ -142,6 +143,7 @@ print(sensor.read_all())
 - `STEPPER/README.md`
 - `GY61/README.md`
 - `MPU6050/README.md`
+- `HX711AD/README.md`
 
 ## Lizenz
 
