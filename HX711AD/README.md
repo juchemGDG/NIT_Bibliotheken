@@ -3,6 +3,8 @@
 ## Beschreibung
 Die Bibliothek `nitbw_hx711ad.py` bindet den HX711AD-Waegedrucksensor am ESP32 unter MicroPython ein. Sie liest 24-bit Rohwerte einer Waegezelle aus und bietet darauf aufbauend Tara, Mittelwert-/Medianfilter sowie kalibrierte Gewichtsausgabe. Durch frei waehlbare Einheit und Kalibrierfaktor eignet sich die Bibliothek fuer Gramm-, Kilogramm- oder Kraftmessungen.
 
+Wichtig: Der Kalibrierfaktor ist nicht an die Nennlast der Zelle gekoppelt. Eine 5-kg-Zelle kann je nach Mechanik und Montage zum Beispiel einen Faktor von 400, 800 oder 1500 liefern. Entscheidend ist nur, dass der Faktor mit eurer konkreten Waage kalibriert wird.
+
 ## Features
 - Rohwertauslesung als signed 24-bit Integer
 - Messbereitschaft pruefen mit `ist_bereit()`
@@ -133,6 +135,7 @@ Praktische Hinweise/Fehlersuche:
 - Messwert springt stark: Median (`median=True`) nutzen und Mechanik stabilisieren.
 - Immer gleiche Werte: DT/SCK-Verkabelung und Stromversorgung pruefen.
 - Unplausible Gewichtswerte: erst tara(), dann sauber kalibrieren.
+- Wenn bei eurer Waage der Wert 400 das richtige Ergebnis liefert, ist das normal. Dann ist 400 euer passender Kalibrierfaktor fuer genau diese Kombination aus Zelle, Mechanik und Verstärkung.
 - Negative Vorzeichen sind normal, wenn Waegezelle invertiert angeschlossen ist.
 
 ## Lizenz

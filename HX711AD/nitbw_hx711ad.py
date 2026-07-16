@@ -216,6 +216,8 @@ class HX711AD:
         Setzt den Kalibrierfaktor (Rohwert pro Einheit).
 
         Einheit ist frei waehlbar (z. B. g, kg, N), sofern konsistent genutzt.
+        Der konkrete Wert ist immer systemabhaengig und haengt von Waegezelle,
+        Mechanik, Hebelverhaeltnis, Montage und Verstärkung ab.
         """
         scale = float(scale)
         if scale == 0:
