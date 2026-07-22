@@ -45,6 +45,14 @@ Sensor-Konfiguration:
 
 - **set_adresse()**: I2C-Adresse aendern (fuer mehrere Sensoren am Bus)
 - **set_timing_budget()**: Timing Budget manuell in µs setzen (Expertenmodus)
+- **set_offset_mm()**: Fester Distanz-Offset in mm (systematischen Fehler ausgleichen)
+- **kalibriere_offset()**: Offset automatisch ueber bekannte Referenzstrecke bestimmen
+
+Kalibrierung:
+
+- Korrigiert systematische Abweichungen (z. B. konstante +70 mm)
+- Empfohlen mit Modus **GENAU** und mattem Ziel bei 10-50 cm
+- Offset wirkt auf `messen_mm()`, `messen_cm()`, `messen_laufzeit()` und alle Filter
 
 ## Hardware
 
@@ -215,6 +223,9 @@ Messbereich konstruktionsbedingt deutlich kuerzer.
 | `lese_adresse()` | int | Aktuelle I2C-Adresse |
 | `set_timing_budget(us)` | - | Timing Budget manuell in µs setzen (Expertenmodus) |
 | `lese_timing_budget()` | int | Aktuelles Timing Budget in µs |
+| `set_offset_mm(offset_mm)` | - | Manuellen Distanz-Offset in mm setzen |
+| `lese_offset_mm()` | int | Aktuellen Distanz-Offset in mm lesen |
+| `kalibriere_offset(referenz_mm, n=15, methode='median')` | tuple | Offset automatisch bestimmen, Rueckgabe `(offset_mm, basiswert_mm)` |
 
 ## Beispiele
 
@@ -222,6 +233,29 @@ Messbereich konstruktionsbedingt deutlich kuerzer.
 - `beispiel_tof_modi.py`: Alle vier Messmodi vergleichen (Streuung, Reichweite)
 - `beispiel_tof_mehrere_sensoren.py`: Zwei Sensoren am selben I2C-Bus mit XSHUT
 - `beispiel_tof_vl6180x.py`: Kurzdistanz-Messung mit VL6180X und Zonen-Logik
+- `beispiel_tof_kalibrierung.py`: Offset-Kalibrierung mit Referenzstrecke
+
+### Kalibrierung in 3 Schritten
+
+1. Referenzstrecke exakt aufbauen (z. B. 200 mm von Sensorfront bis Ziel).
+2. Kalibrieren und Offset speichern.
+3. Offset bei jedem Neustart wieder setzen (Wert ist nicht persistent im Sensor).
+
+```python
+from machine import I2C, Pin
+from nitbw_tof import TOF
+
+i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=400000)
+sensor = TOF(i2c)
+sensor.set_modus(TOF.GENAU)
+
+offset_mm, basis_mm = sensor.kalibriere_offset(200, n=15, methode='median')
+print("Basiswert: {} mm".format(basis_mm))
+print("Neuer Offset: {} mm".format(offset_mm))
+
+# Spaeter im Programmstart wieder setzen:
+# sensor.set_offset_mm(offset_mm)
+```
 
 ### Zusatzbeispiele
 

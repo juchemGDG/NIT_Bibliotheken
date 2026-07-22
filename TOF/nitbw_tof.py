@@ -2,7 +2,7 @@
 NIT Bibliothek: TOF - Entfernungsmessung mit VL53L0X und VL6180X
 Fuer ESP32 mit MicroPython
 
-Version:    1.1.0
+Version:    1.2.0
 Autor:      Volker Rust / nitbw
 Lizenz:     MIT (siehe LICENSE)
 Erstellt:   2026-07
@@ -138,6 +138,7 @@ class TOF:
         self._sensor_typ = self.SENSOR_AUTO
         self._timing_budget_us = 33000
         self._letzter_status = 0
+        self._offset_mm = 0
 
         # XSHUT-Pin: Sensor aufwecken
         if xshut is not None:
@@ -682,6 +683,13 @@ class TOF:
     # Grundmessungen
     # ================================================================
 
+    def _korrigiere_distanz(self, distanz_mm):
+        """Wendet den gesetzten Offset an und prueft das Ergebnis."""
+        korrigiert = int(round(distanz_mm + self._offset_mm))
+        if korrigiert <= 0:
+            return -1
+        return korrigiert
+
     def messen_mm(self):
         """
         Misst die Entfernung in Millimetern.
@@ -713,7 +721,7 @@ class TOF:
             if distanz <= 0 or distanz > 255:
                 return -1
 
-            return distanz
+            return self._korrigiere_distanz(distanz)
 
         # Mess-Sequenz starten
         self._reg_schreiben(0x80, 0x01)
@@ -753,7 +761,7 @@ class TOF:
         if distanz <= 0 or distanz > 2200:
             return -1
 
-        return distanz
+        return self._korrigiere_distanz(distanz)
 
     def messen_cm(self):
         """
@@ -933,6 +941,77 @@ class TOF:
     # ================================================================
     # Sensor-Konfiguration
     # ================================================================
+
+    def set_offset_mm(self, offset_mm):
+        """
+        Setzt einen festen Distanz-Offset in Millimetern.
+
+        Positive Offsets erhoehen den Messwert, negative Offsets verringern ihn.
+
+        Args:
+            offset_mm: Offset in mm (z. B. -70 fuer -7.0 cm)
+        """
+        self._offset_mm = int(round(offset_mm))
+
+    def lese_offset_mm(self):
+        """Gibt den aktuell gesetzten Distanz-Offset in mm zurueck."""
+        return self._offset_mm
+
+    def kalibriere_offset(self, referenz_mm, n=15, methode='median'):
+        """
+        Kalibriert den Distanz-Offset ueber eine bekannte Referenzstrecke.
+
+        Ablauf:
+        - Sensor auf ein Ziel mit bekannter Entfernung ausrichten
+        - Mehrere Rohmessungen ohne Offset aufnehmen
+        - Offset = Referenz - gemessener Kennwert
+
+        Args:
+            referenz_mm: Echte, bekannte Distanz in mm
+            n: Anzahl der Messungen fuer die Kalibrierung (Standard: 15)
+            methode: 'median' (robust) oder 'mittelwert'
+
+        Returns:
+            tuple: (offset_mm, basiswert_mm)
+        """
+        referenz_mm = int(round(referenz_mm))
+        if referenz_mm <= 0:
+            raise ValueError("referenz_mm muss > 0 sein")
+        if n < 3:
+            raise ValueError("n muss mindestens 3 sein")
+
+        methode = str(methode).lower()
+        if methode not in ('median', 'mittelwert'):
+            raise ValueError("methode muss 'median' oder 'mittelwert' sein")
+
+        alter_offset = self._offset_mm
+        self._offset_mm = 0
+
+        werte = []
+        try:
+            for _ in range(n):
+                mm = self.messen_mm()
+                if mm > 0:
+                    werte.append(mm)
+        finally:
+            self._offset_mm = alter_offset
+
+        if not werte:
+            raise OSError("Keine gueltigen Messwerte fuer Kalibrierung")
+
+        if methode == 'median':
+            sortiert = sorted(werte)
+            mitte = len(sortiert) // 2
+            if len(sortiert) % 2 == 0:
+                basiswert = round((sortiert[mitte - 1] + sortiert[mitte]) / 2)
+            else:
+                basiswert = sortiert[mitte]
+        else:
+            basiswert = round(sum(werte) / len(werte))
+
+        offset = int(referenz_mm - basiswert)
+        self._offset_mm = offset
+        return (offset, basiswert)
 
     def set_adresse(self, neue_adresse):
         """
