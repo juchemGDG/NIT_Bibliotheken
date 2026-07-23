@@ -34,6 +34,7 @@ Konventionen fuer neue Bibliotheken sind in [`.github/copilot-instructions.md`](
 | GY61 | `GY61/nitbw_gy61.py` | `GY61/beispiel_gy61.py`, `GY61/beispiel_gy61_kalibrierung.py` | 1.0.0 |
 | MPU6050 | `MPU6050/nitbw_mpu6050.py` | `MPU6050/beispiel_mpu6050.py`, `MPU6050/beispiel_mpu6050_neigung.py` | 1.0.0 |
 | HX711AD | `HX711AD/nitbw_hx711ad.py` | `HX711AD/beispiel_hx711ad.py`, `HX711AD/beispiel_hx711ad_kalibrierung.py` | 1.0.0 |
+| ACS758 | `ACS758/nitbw_acs758.py` | `ACS758/beispiel_acs758.py`, `ACS758/beispiel_acs758_kalibrierung.py` | 1.0.0 |
 
 ## Schnellstart-Muster
 
@@ -117,6 +118,14 @@ sensor = MPU6050(i2c)
 print(sensor.read_all())
 ```
 
+```python
+# Beispiel ACS758
+from nitbw_acs758 import ACS758
+sensor = ACS758(pin=34, variante='50B', vcc=5.0, teiler=2.0)
+sensor.nullpunkt_kalibrieren(n=200)   # ohne Stromfluss
+print("{:.3f} A".format(sensor.messen_a()))
+```
+
 ## Dokumentation je Bibliothek
 
 - `LCD/README.md`
@@ -144,6 +153,7 @@ print(sensor.read_all())
 - `GY61/README.md`
 - `MPU6050/README.md`
 - `HX711AD/README.md`
+- `ACS758/README.md`
 
 ## Lizenz
 
