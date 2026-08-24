@@ -2,7 +2,7 @@
 NIT Bibliothek: Stepper - Ansteuerung von Schrittmotoren
 Fuer ESP32 mit MicroPython
 
-Version:    1.0.0
+Version:    1.2.0
 Autor:      Volker Rust / nitbw
 Lizenz:     MIT (siehe LICENSE)
 Erstellt:   2026-05
@@ -63,14 +63,15 @@ class StepperULN:
     """
 
     def __init__(self, in1, in2, in3, in4,
-                 schritte_pro_umdrehung=2048, geschwindigkeit=10):
+                 schritte_pro_umdrehung=4096, geschwindigkeit=10):
         """
         Initialisiert den Stepper.
 
         Args:
             in1..in4: GPIO-Pin-Nummern fuer die vier Motorleitungen
             schritte_pro_umdrehung: Schritte fuer eine volle Umdrehung
-                                    (28BYJ-48 Halbschritt: 2048)
+                                    (28BYJ-48 Halbschritt: typ. 4096,
+                                    praxisnah oft ~4076)
             geschwindigkeit: Startgeschwindigkeit in Schritten/Sekunde
                              (28BYJ-48 sinnvoll: 5 - 200 sps)
         """
