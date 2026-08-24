@@ -4,7 +4,7 @@
 Die Bibliothek `nitbw_compass.py` bindet GY-261-Kompassmodule unter MicroPython an und berechnet Heading, Himmelsrichtung und Lagewinkel. Sie unterstuetzt QMC5883L und HMC5883L als Magnetfeldsensoren sowie den ADXL345 Beschleunigungssensor des GY-261 fuer Sensorfusion (neigungskompensiertes Heading). Ausgelegt fuer den Unterricht mit klarer API fuer Kalibrierung, Richtungslogik und Lagedaten.
 
 ## Version
-`1.1`
+`1.2.0`
 
 ## Features
 

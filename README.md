@@ -15,7 +15,7 @@ Konventionen fuer neue Bibliotheken sind in [`.github/copilot-instructions.md`](
 | BME280 | `BME280/nitbw_bme280.py` | `BME280/beispiel_bme280.py` | 1.1.0 |
 | DS18B20 | `DS18B20/nitbw_ds18b20.py` | `DS18B20/beispiel_ds18b20.py`, `DS18B20/beispiel_ds18b20_mehrere.py` | 1.0.0 |
 | COMPASS | `COMPASS/nitbw_compass.py` | `COMPASS/beispiel_compass.py`, `COMPASS/beispiel_compass_rotation.py` | 1.2.0 |
-| MLEARN | `MLEARN/nitbw_mlearn.py` | `MLEARN/beispiel_mlearn.py` | 2.2.0 |
+| MLEARN | `MLEARN/nitbw_mlearn.py` | `MLEARN/beispiel_mlearn.py` | 2.2.1 |
 | AS7262 | `AS7262/nitbw_as7262.py` | `AS7262/beispiel_as7262.py`, `AS7262/beispiel_as7262_kalibriert.py` | 2.0.0 |
 | RTC | `RTC/nitbw_rtc.py` | `RTC/beispiel_rtc.py`, `RTC/beispiel_rtc_komplett.py` | 1.2.0 |
 | Servo | `Servo/nitbw_servo.py` | `Servo/beispiel_servo.py`, `Servo/beispiel_servo_continuous.py` | 1.1.0 |
@@ -25,7 +25,7 @@ Konventionen fuer neue Bibliotheken sind in [`.github/copilot-instructions.md`](
 | ESPNOW | `ESPNOW/nitbw_espnow.py` | `ESPNOW/beispiel_espnow.py`, `ESPNOW/beispiel_espnow_json.py` | 1.0.0 |
 | NITON | `NITON/nitbw_niton.py` | `NITON/beispiel_niton.py`, `NITON/beispiel_niton_listen.py` | 2.1.1 |
 | TOENE | `TOENE/nitbw_toene.py` | `TOENE/beispiel_toene.py`, `TOENE/beispiel_toene_lied.py` | 1.2.0 |
-| STEPPER | `STEPPER/nitbw_stepper.py` | `STEPPER/beispiel_stepper_uln.py`, `STEPPER/beispiel_stepper_dir.py` | 1.0.0 |
+| STEPPER | `STEPPER/nitbw_stepper.py` | `STEPPER/beispiel_stepper_uln.py`, `STEPPER/beispiel_stepper_dir.py` | 1.2.0 |
 
 ## Schnellstart-Muster
 
