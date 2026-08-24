@@ -33,8 +33,8 @@ und bietet eine deutschsprachige API.
 
 | Modell | Typ | Spannung | Schritte/Umdr. (Halbschritt) | Haltemoment |
 |---|---|---|---|---|
-| 28BYJ-48 (5 V) | Unipolar, 4-Phasen | 5 V | 2048 | ~34 mNm |
-| 28BYJ-48 (12 V) | Unipolar, 4-Phasen | 12 V | 2048 | ~100 mNm |
+| 28BYJ-48 (5 V) | Unipolar, 4-Phasen | 5 V | typ. 4096 (praxisnah oft ~4076) | ~34 mNm |
+| 28BYJ-48 (12 V) | Unipolar, 4-Phasen | 12 V | typ. 4096 (praxisnah oft ~4076) | ~100 mNm |
 
 Empfohlene Geschwindigkeit: 50 – 500 Schritte/s (haengt von Last und Spannung ab).
 
@@ -142,13 +142,13 @@ motor.aus()
 #### Konstruktor
 
 ```python
-StepperULN(in1, in2, in3, in4, schritte_pro_umdrehung=2048, geschwindigkeit=10)
+StepperULN(in1, in2, in3, in4, schritte_pro_umdrehung=4096, geschwindigkeit=10)
 ```
 
 | Parameter | Typ | Standard | Beschreibung |
 |---|---|---|---|
 | `in1..in4` | int | - | GPIO-Pin-Nummern fuer IN1 bis IN4 des ULN2003 |
-| `schritte_pro_umdrehung` | int | 2048 | Schritte pro Umdrehung (28BYJ-48 Halbschritt) |
+| `schritte_pro_umdrehung` | int | 4096 | Schritte pro Umdrehung (28BYJ-48 Halbschritt, praxisnah oft ~4076) |
 | `geschwindigkeit` | int/float | 10 | Startgeschwindigkeit in Schritten/Sekunde |
 
 #### Methoden
@@ -228,6 +228,10 @@ naechsten Schritt.
 
 ## Beispiele
 
+Hinweis fuer 28BYJ-48 am ULN2003: Im Halbschrittbetrieb sind fuer eine volle
+mechanische Umdrehung typischerweise 4096 Schritte noetig (in der Praxis oft
+nahe 4076 durch Getriebetoleranzen).
+
 - [beispiel_stepper_uln.py](beispiel_stepper_uln.py): 28BYJ-48 Grundfunktionen
 - [beispiel_stepper_dir.py](beispiel_stepper_dir.py): NEMA 17 + A4988 Grundfunktionen
 - [beispiel_stepper_uln_erweitert.py](beispiel_stepper_uln_erweitert.py): Zwei Motoren gleichzeitig, Geschwindigkeitswechsel, stopp()
@@ -239,12 +243,13 @@ naechsten Schritt.
 ```python
 from nitbw_stepper import StepperULN, VOR, ZURUECK
 
-motor = StepperULN(in1=14, in2=27, in3=26, in4=25)
+motor = StepperULN(in1=14, in2=27, in3=26, in4=25,
+                   schritte_pro_umdrehung=4096)
 # Auf 0° fahren (Nullpunkt)
 motor.schritte(100, ZURUECK)
 motor.aus()
 
-# Zeiger auf Wert 50 % -> 90° -> 256 Schritte
+# Zeiger auf Wert 50 % -> 90° -> 1024 Schritte (bei 4096 spr/U)
 motor.winkel(90, VOR)
 motor.aus()
 ```
@@ -253,11 +258,13 @@ motor.aus()
 ```python
 from nitbw_stepper import StepperULN, VOR
 
-links = StepperULN(in1=14, in2=27, in3=26, in4=25, geschwindigkeit=200)
-rechts = StepperULN(in1=13, in2=12, in3=4, in4=2, geschwindigkeit=200)
+links = StepperULN(in1=14, in2=27, in3=26, in4=25,
+                   schritte_pro_umdrehung=4096, geschwindigkeit=200)
+rechts = StepperULN(in1=13, in2=12, in3=4, in4=2,
+                    schritte_pro_umdrehung=4096, geschwindigkeit=200)
 
-links.starte(2048, VOR)
-rechts.starte(2048, VOR)
+links.starte(4096, VOR)
+rechts.starte(4096, VOR)
 
 while not (links.ist_fertig() and rechts.ist_fertig()):
     links.ausfuehren()

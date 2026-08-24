@@ -10,21 +10,26 @@ import time
 
 # --- Initialisierung ---
 # ULN2003-Platine: IN1..IN4 an GPIO 14, 27, 26, 25 anschliessen
+# Hinweis:
+# 28BYJ-48 wird in nitbw_stepper im Halbschritt betrieben.
+# Fuer eine volle mechanische Umdrehung sind dafuer typischerweise 4096 Schritte
+# notwendig (je nach Getriebetoleranz in der Praxis oft ~4076).
 motor = StepperULN(in1=14, in2=27, in3=26, in4=25,
-                   schritte_pro_umdrehung=2048,
+                   schritte_pro_umdrehung=4096,
                    geschwindigkeit=200)
 
 # --- Hauptprogramm ---
 print("=== StepperULN Grundbeispiel (28BYJ-48) ===")
+print("Hinweis: Halbschrittbetrieb aktiv -> 4096 Schritte pro Umdrehung")
 
-# 512 Schritte vorwaerts (entspricht 90° bei 2048 spr)
-print("512 Schritte vorwaerts")
-motor.schritte(512, VOR)
+# 1024 Schritte vorwaerts (entspricht 90 Grad bei 4096 spr)
+print("1024 Schritte vorwaerts")
+motor.schritte(1024, VOR)
 time.sleep(0.5)
 
-# 512 Schritte zurueck
-print("512 Schritte zurueck")
-motor.schritte(512, ZURUECK)
+# 1024 Schritte zurueck
+print("1024 Schritte zurueck")
+motor.schritte(1024, ZURUECK)
 time.sleep(0.5)
 
 # Auf einen Winkel drehen
