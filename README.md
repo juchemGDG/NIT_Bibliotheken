@@ -35,6 +35,7 @@ Konventionen fuer neue Bibliotheken sind in [`.github/copilot-instructions.md`](
 | MPU6050 | `MPU6050/nitbw_mpu6050.py` | `MPU6050/beispiel_mpu6050.py`, `MPU6050/beispiel_mpu6050_neigung.py` | 1.0.0 |
 | HX711AD | `HX711AD/nitbw_hx711ad.py` | `HX711AD/beispiel_hx711ad.py`, `HX711AD/beispiel_hx711ad_kalibrierung.py` | 1.0.0 |
 | ACS758 | `ACS758/nitbw_acs758.py` | `ACS758/beispiel_acs758.py`, `ACS758/beispiel_acs758_kalibrierung.py` | 1.0.0 |
+| BH1750 | `BH1750/nitbw_bh1750.py` | `BH1750/beispiel_bh1750.py`, `BH1750/beispiel_bh1750_daemmerung.py` | 1.0.0 |
 
 ## Schnellstart-Muster
 
@@ -126,6 +127,15 @@ sensor.nullpunkt_kalibrieren(n=200)   # ohne Stromfluss
 print("{:.3f} A".format(sensor.messen_a()))
 ```
 
+```python
+# Beispiel BH1750
+from machine import I2C, Pin
+from nitbw_bh1750 import BH1750
+i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=400000)
+sensor = BH1750(i2c)
+print("{:.1f} lx".format(sensor.read_lux()))
+```
+
 ## Dokumentation je Bibliothek
 
 - `LCD/README.md`
@@ -154,6 +164,7 @@ print("{:.3f} A".format(sensor.messen_a()))
 - `MPU6050/README.md`
 - `HX711AD/README.md`
 - `ACS758/README.md`
+- `BH1750/README.md`
 
 ## Lizenz
 
