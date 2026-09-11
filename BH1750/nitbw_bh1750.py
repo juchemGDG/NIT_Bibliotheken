@@ -2,23 +2,34 @@
 NIT Bibliothek: BH1750 - Digitaler Lichtsensor (Beleuchtungsstaerke in Lux) ueber I2C
 Fuer ESP32 mit MicroPython
 
-Version:    1.0.0
+Version:    1.1.0
 Autor:      Stephan Juchem / nitbw
 Lizenz:     MIT (siehe LICENSE)
 Erstellt:   2026-09
+Geaendert:  2026-09 - Transmission/Extinktion (Fotometer-Funktionen) integriert
 
 Direkte Befehlsansteuerung des BH1750 (ROHM) ohne Fremdbibliotheken.
 Unterstuetzt kontinuierliche und einmalige Messungen in hoher/niedriger
 Aufloesung sowie eine einstellbare Messzeit (MTreg) zur Anpassung der
 Empfindlichkeit an sehr helle oder sehr dunkle Umgebungen.
+
+Zusaetzlich enthaelt die Klasse Fotometer-Funktionen: Nach einer
+Referenzmessung (Leerwert/Blank, z. B. mit Wasser oder leerem
+Strahlengang) koennen Transmission (%) und Extinktion/Absorbanz nach
+dem Beer-Lambert-Gesetz berechnet werden. Diese Groessen sind
+unabhaengig von LED-Alterung, Abstand und Umgebungslicht und eignen
+sich besser als Feature fuer die ML-Algorithmen als der rohe Lux-Wert.
 """
 
 from time import sleep_ms
+import math
 
 
 class BH1750:
     """
-    Liest die Beleuchtungsstaerke (Lux) ueber den BH1750 aus.
+    Liest die Beleuchtungsstaerke (Lux) ueber den BH1750 aus und kann
+    optional als Fotometer verwendet werden (Transmission/Extinktion
+    relativ zu einer Referenzmessung).
 
     Unterstuetzte Hardware:
     - BH1750 / BH1750FVI Breakout-Board (z. B. GY-302)
@@ -61,7 +72,8 @@ class BH1750:
     _CONT_MODES = (CONT_HIRES, CONT_HIRES2, CONT_LORES)
     _ALL_MODES = _CONT_MODES + _ONCE_MODES
 
-    def __init__(self, i2c, addr=ADDR_LOW, mode=CONT_HIRES, mtreg=MTREG_DEFAULT):
+    def __init__(self, i2c, addr=ADDR_LOW, mode=CONT_HIRES, mtreg=MTREG_DEFAULT,
+                 n_kalibrierung=10):
         """
         Initialisiert den BH1750.
 
@@ -70,6 +82,7 @@ class BH1750:
         :param mode: Startmodus (CONT_HIRES, CONT_HIRES2, CONT_LORES,
                      ONCE_HIRES, ONCE_HIRES2, ONCE_LORES)
         :param mtreg: Messzeitregister (31..254, Standard 69)
+        :param n_kalibrierung: Standard-Anzahl Messungen fuer kalibrieren()
         """
         if mode not in self._ALL_MODES:
             raise ValueError("Ungueltiger mode-Wert")
@@ -80,6 +93,10 @@ class BH1750:
         self.addr = addr
         self.mode = mode
         self.mtreg = mtreg
+
+        # Fotometer-Referenzwert (Leerwert) - None solange nicht kalibriert
+        self.n_kalibrierung = n_kalibrierung
+        self.i0 = None
 
         self.power_on()
         if mtreg != self.MTREG_DEFAULT:
@@ -130,6 +147,10 @@ class BH1750:
                             (fuer sehr dunkle Umgebungen).
         Kleinerer Wert   -> kuerzere Messzeit, hoeherer Messbereich
                             (fuer sehr helle Umgebungen, verhindert Saettigung).
+
+        Hinweis: Nach einer Aenderung des MTreg ist ein bereits
+        gespeicherter Referenzwert (i0) nicht mehr gueltig, da sich die
+        Skalierung der Rohwerte aendert. Ggf. erneut kalibrieren().
 
         :param mtreg: Wert von 31 bis 254 (Standard 69)
         """
@@ -227,3 +248,88 @@ class BH1750:
         :return: True, wenn die aktuelle Beleuchtungsstaerke < schwelle
         """
         return self.read_lux() < schwelle
+
+    # ------------------------------------------------------------------
+    # Fotometer-Funktionen: Transmission & Extinktion relativ zu i0
+    # ------------------------------------------------------------------
+
+    def kalibrieren(self, n=None):
+        """
+        Nimmt die aktuelle Beleuchtungsstaerke als Referenzwert (Leerwert) auf.
+
+        Muss einmal mit Referenzfluessigkeit (z. B. Wasser) oder leerem
+        Strahlengang aufgerufen werden, bevor transmission()/extinktion()
+        sinnvolle Werte liefern. Nach einer Aenderung von Modus oder
+        MTreg (set_mode/set_mtreg/set_sensitivity) muss erneut kalibriert
+        werden, da sich sonst die Skalierung der Rohwerte veraendert.
+
+        :param n: Anzahl Messungen zum Mitteln (Standard: n_kalibrierung)
+        :return: gemessener Referenzwert I0 (in "Lux", Rohgroesse des Sensors)
+        """
+        anzahl = n if n is not None else self.n_kalibrierung
+        self.i0 = self.read_averaged(n=anzahl)
+        if self.i0 <= 0:
+            self.i0 = None
+            raise ValueError(
+                "Referenzwert ist 0 oder negativ - Lichtquelle/Sensor pruefen"
+            )
+        return self.i0
+
+    def ist_kalibriert(self):
+        """Gibt True zurueck, wenn bereits eine Referenzmessung vorliegt."""
+        return self.i0 is not None
+
+    def _pruefe_kalibrierung(self):
+        if self.i0 is None:
+            raise RuntimeError(
+                "Noch nicht kalibriert - zuerst kalibrieren() mit Referenz aufrufen"
+            )
+
+    def transmission(self, n=5):
+        """
+        Misst die Transmission der aktuell eingesetzten Probe relativ
+        zum Referenzwert (kalibrieren() muss vorher aufgerufen worden sein).
+
+        :param n: Anzahl Einzelmessungen zum Mitteln
+        :return: Transmission T in Prozent (0..100+, >100 moeglich bei Rauschen)
+        """
+        self._pruefe_kalibrierung()
+        i_probe = self.read_averaged(n=n)
+        return (i_probe / self.i0) * 100.0
+
+    def extinktion(self, n=5):
+        """
+        Misst die Extinktion (Absorbanz) der aktuell eingesetzten Probe
+        nach dem Beer-Lambert-Gesetz: E = -log10(T).
+
+        Ist linear zur Konzentration des absorbierenden Stoffs und
+        eignet sich daher fuer Kalibriergeraden und als ML-Feature.
+
+        :param n: Anzahl Einzelmessungen zum Mitteln
+        :return: Extinktion E (dimensionslos, >= 0 im Normalfall)
+        """
+        t_prozent = self.transmission(n=n)
+        t = t_prozent / 100.0
+        if t <= 0:
+            # voellig undurchlaessige Probe -> Extinktion waere unendlich
+            return float("inf")
+        return -math.log10(t)
+
+    def messung(self, n=5):
+        """
+        Bequemer Sammelaufruf: liefert Rohwert, Transmission und
+        Extinktion in einem Durchgang (nur eine Messreihe noetig).
+
+        :param n: Anzahl Einzelmessungen zum Mitteln
+        :return: dict mit 'lux', 'transmission' (%), 'extinktion'
+        """
+        self._pruefe_kalibrierung()
+        i_probe = self.read_averaged(n=n)
+        t_prozent = (i_probe / self.i0) * 100.0
+        t = t_prozent / 100.0
+        e = float("inf") if t <= 0 else -math.log10(t)
+        return {
+            "lux": i_probe,
+            "transmission": t_prozent,
+            "extinktion": e,
+        }
