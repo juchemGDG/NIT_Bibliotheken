@@ -37,6 +37,7 @@ Konventionen fuer neue Bibliotheken sind in [`.github/copilot-instructions.md`](
 | ACS758 | `ACS758/nitbw_acs758.py` | `ACS758/beispiel_acs758.py`, `ACS758/beispiel_acs758_kalibrierung.py` | 1.0.0 |
 | BH1750 | `BH1750/nitbw_bh1750.py` | `BH1750/beispiel_bh1750.py`, `BH1750/beispiel_bh1750_daemmerung.py` | 1.0.0 |
 | BMP280 | `BMP280/nitbw_bmp280.py` | `BMP280/beispiel_bmp280.py`, `BMP280/beispiel_bmp280_hoehenmesser.py` | 1.0.0 |
+| PID | `PID/nitbw_pid.py` | `PID/beispiel_pid.py`, `PID/beispiel_pid_vergleich.py`, `PID/beispiel_pid_zweipunkt.py`, `PID/beispiel_pid_temperatur.py`, `PID/beispiel_pid_reglerlab.py` | 1.0.0 |
 
 ## Schnellstart-Muster
 
