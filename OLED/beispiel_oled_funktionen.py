@@ -199,10 +199,10 @@ for i in range(0, 101, 5):
     oled.draw_bar(85, 14, 12, 46, abs(50 - i) * 2)
 
     # Labels
-    oled.print("A", 14, 0, font='sans')
-    oled.print("B", 39, 0, font='sans')
-    oled.print("C", 64, 0, font='sans')
-    oled.print("D", 89, 0, font='sans')
+    oled.print("A", 14, 10, font='sans')
+    oled.print("B", 39, 10, font='sans')
+    oled.print("C", 64, 10, font='sans')
+    oled.print("D", 89, 10, font='sans')
     oled.show()
     time.sleep(0.1)
 
