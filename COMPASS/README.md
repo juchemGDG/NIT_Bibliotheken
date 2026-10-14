@@ -4,7 +4,7 @@
 Die Bibliothek `nitbw_compass.py` bindet GY-261-Kompassmodule unter MicroPython an und berechnet Heading, Himmelsrichtung und Lagewinkel. Sie unterstuetzt QMC5883L und HMC5883L als Magnetfeldsensoren sowie den ADXL345 Beschleunigungssensor des GY-261 fuer Sensorfusion (neigungskompensiertes Heading). Ausgelegt fuer den Unterricht mit klarer API fuer Kalibrierung, Richtungslogik und Lagedaten.
 
 ## Version
-`1.2.0`
+`1.3.0`
 
 ## Features
 
@@ -25,6 +25,7 @@ Die Bibliothek `nitbw_compass.py` bindet GY-261-Kompassmodule unter MicroPython 
 - Rohwerte, Beschleunigung in g und m/s^2
 - Pitch (Nickwinkel) und Roll (Rollwinkel) in Grad
 - Gesamtneigungswinkel und Lagetext (`waagerecht`, `geneigt`, `hochkant`)
+- Einstellbare Abtastrate des ADXL345 (25, 50, 100, 200 oder 400 Hz)
 - Automatische Offset-Kalibrierung
 
 ### Sensorfusion (neu in v1.1)
@@ -137,6 +138,7 @@ Konstruktor: `Accelerometer(i2c, addr=0x53)`
 - `read_orientation_text()` - Lagetext: `"waagerecht"`, `"leicht geneigt"`, `"stark geneigt"`, `"hochkant"`
 - `calibrate(samples=50)` - automatische Offset-Kalibrierung (Sensor waagerecht halten)
 - `set_offset(x, y, z)` - manuelle Offsets setzen
+- `set_sample_rate(rate_hz)` - Abtastrate auf 25, 50, 100, 200 oder 400 Hz setzen
 - `get_device_id()` - Chip-ID lesen (ADXL345 = `0xE5`)
 - `is_available()` - True wenn Sensor antwortet
 

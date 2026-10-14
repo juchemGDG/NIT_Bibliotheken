@@ -257,7 +257,7 @@ Root-`README.md`. Verwende exakt dieses Spaltenformat:
 | ULTRASCHALL | Volker Rust / nitbw |
 | TOF | Volker Rust / nitbw |
 | BME280 | Stephan Juchem / nitbw |
-| COMPASS | Stephan Juchem / nitbw |
+| COMPASS | Stephan Juchem, Volker Rust / nitbw |
 | MLEARN | Stephan Juchem / nitbw |
 | OLED | Stephan Juchem, Volker Rust / nitbw |
 | AS7262 | Stephan Juchem / nitbw |

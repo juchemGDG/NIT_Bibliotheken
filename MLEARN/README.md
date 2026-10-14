@@ -10,6 +10,10 @@ und arbeitet mit Feature-Listen von beliebigen Sensoren (z.B. TCS3200 oder AS726
 Das Zusatzmodul `nitbw_datensammler.py` ermoeglicht interaktives Datensammeln
 per Tastendruck direkt auf dem ESP32.
 
+Das Modul `nitbw_vibration.py` berechnet Merkmale aus Beschleunigungsfenstern
+und vergleicht sie mit einer pro Motor gespeicherten gesunden Referenz. Es ist
+fuer Abweichungserkennung gedacht und ersetzt keinen Defektklassifikator.
+
 ## Features
 
 Algorithmen:
@@ -42,10 +46,17 @@ Interaktives Datensammeln (nitbw_datensammler.py):
 - Automatische CSV-Erstellung mit Header
 - Arbeitet mit beliebigen Sensoren
 
+Motorvibrationen (nitbw_vibration.py):
+- Messfenster mit dem ADXL345 aus dem GY-261 aufnehmen
+- RMS der Wechselkomponente, Spitze-Spitze, Crest-Faktor und grobe Frequenz je Achse
+- Gesunde Motorreferenz als JSON speichern und spaeter laden
+- Abweichungsscore und Schwellwert fuer mehrere Fenster in Folge
+
 ## Hardware
 - ESP32 mit MicroPython
 - Alternativ andere MicroPython-Boards mit ausreichend RAM
 - Speicherbedarf haengt von CSV-Groesse und Modellkomplexitaet ab
+- Fuer Vibrationsueberwachung: GY-261 mit ADXL345 am I2C-Bus, Standardadresse `0x53`
 
 Unterstuetzte Sensoren (fuer Farberkennung):
 - TCS3200/TCS230 (4 Kanaele: R, G, B, Klar) -- Bibliothek in `TCS3200/`
@@ -59,8 +70,9 @@ Hinweise:
 - Fuer das neuronale Netz: kleine Lernrate (0.001-0.01) waehlen.
 
 ## Anschluss
-Kein direkter Hardwareanschluss fuer MLEARN noetig. Datenquelle ist das
-Dateisystem des Boards. Fuer den Datensammler wird ein Taster benoetigt:
+Fuer die MLEARN-Algorithmen ist kein direkter Hardwareanschluss noetig; die
+Datenquelle ist das Dateisystem des Boards. Fuer den Datensammler wird ein
+Taster benoetigt:
 
 ```text
 Taster           ESP32
@@ -70,9 +82,19 @@ Andere     ----> GND
 
 Der Pin wird intern mit Pullup konfiguriert.
 
+Fuer das Vibrationsbeispiel wird der GY-261 ueber I2C angeschlossen:
+
+| GY-261 | ESP32 |
+|---|---|
+| VCC | 3V3 |
+| GND | GND |
+| SCL | GPIO 22 |
+| SDA | GPIO 21 |
+
 ## Installation
 - Datei `nitbw_mlearn.py` auf den ESP32 kopieren.
 - Optional: `nitbw_datensammler.py` fuer interaktives Datensammeln.
+- Fuer Vibrationsueberwachung zusaetzlich `nitbw_vibration.py` und `COMPASS/nitbw_compass.py` (ADXL345-Klasse) kopieren.
 - Sensor-Bibliothek (`nitbw_tcs3200.py` oder `nitbw_as7262.py`) separat kopieren.
 
 ```python
@@ -168,6 +190,18 @@ print(pred)
 | `sammle_einzeln(mess_funktion, label)` | list | Einzelne Messung durchfuehren |
 | `get_daten()` | list | Gesammelte Daten abrufen |
 
+### Vibrationsanalyse
+
+| Methode | Rueckgabe | Beschreibung |
+|---|---|---|
+| `sammle_fenster(sensor, anzahl=128, abtastrate=200)` | list | Zeitgesteuertes ADXL345-Fenster aufnehmen (25-400 Hz) |
+| `berechne_merkmale(fenster, abtastrate=200)` | list | 12 Zeit- und Frequenzmerkmale aus drei Achsen berechnen |
+| `VibrationsReferenz(motor_id, schwelle=3.0, mindest_streuung=0.000001)` | Objekt | Referenzprofil pro Motor erzeugen |
+| `einlernen(feature_fenster)` | - | Gesunde Feature-Fenster als Referenz speichern |
+| `abweichung(merkmale)` | float | Standardisierte Abweichung zur Referenz berechnen |
+| `ist_abweichend(merkmale)` | bool | Abweichung gegen die konfigurierte Schwelle pruefen |
+| `speichern(dateiname)` / `laden(dateiname)` | - / Objekt | Referenzprofil als JSON speichern oder laden |
+
 ## Beispiele
 
 ### Beispieldateien
@@ -180,10 +214,30 @@ Dateien im Ordner:
 - `beispiel_mlearn_phase2_training.py` -- Training und Vergleich aller Modelle
 - `beispiel_mlearn_phase3_erkennung.py` -- Live-Erkennung mit gespeichertem Modell
 - `beispiel_mlearn_komplett.py` -- Kompletter Workflow in einem Programm
+- `beispiel_vibration_adxl345.py` -- Gesunde Motorreferenz einlernen und Abweichungen beobachten
 - `test_mlearn_lego.py` -- **Kompletter ML-Workflow mit AS7262**: Daten sammeln (Phase 1),
   Laden und Ueberblick (Phase 2), Training und Bewertung (Phase 3), didaktische
   Erklaerungen (Phase 4), Speichern und Laden (Phase 5), Live-Erkennung (Phase 6).
   Standard: 12 verschiedene Legostein-Farben (konfigurierbar).
+
+### Vibrationsueberwachung mit ADXL345
+
+Das Beispiel `beispiel_vibration_adxl345.py` nimmt 30 Fenster eines gesunden
+Motors auf, speichert ein JSON-Profil und kann anschliessend Abweichungen
+melden. Fuer jeden Motor ist ein eigenes Profil vorgesehen. Referenz und
+Laufzeitmessung muessen mit gleicher Montage sowie vergleichbarer Drehzahl und
+Last erfolgen. Bei wechselnden Betriebspunkten muessen diese Bedingungen
+separat erfasst und bewertet werden.
+
+Nach der Referenzaufnahme `EINLERNEN` im Beispiel auf `False` setzen, um das
+gespeicherte Profil zur Ueberwachung zu laden.
+
+Die Abweichungsschwelle `3.0` ist nur ein Startwert und muss mit gesunden
+Aufnahmen angepasst werden. Das Verfahren erkennt Abweichungen, sagt aber ohne
+bekannte Fehlerdaten keinen konkreten Defekt voraus. Die Frequenz wird ueber
+Nulldurchgaenge angenaehert; die Abtastung muss am realen ESP32 und Motor
+geprueft werden. Wenn `sammle_fenster` die gewaehlte Rate nicht einhalten kann,
+bricht es ab, statt ein ungleichmaessiges Fenster stillschweigend zu nutzen.
 
 ### Testdatensaetze und vorgefertigte Modelle
 

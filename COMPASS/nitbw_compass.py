@@ -2,8 +2,8 @@
 NIT Bibliothek: COMPASS - Kompass und Magnetfeldmessung fuer GY-261
 Fuer ESP32 mit MicroPython
 
-Version:    1.2.0
-Autor:      Stephan Juchem / nitbw
+Version:    1.3.0
+Autor:      Stephan Juchem, Volker Rust / nitbw
 Lizenz:     MIT (siehe LICENSE)
 Erstellt:   2026-03
 
@@ -98,6 +98,19 @@ class Accelerometer:
         self._write_register(self.REG_DATA_FORMAT, 0x08)
         # Abtastrate 100 Hz
         self._write_register(self.REG_BW_RATE, self.RATE_100HZ)
+
+    def set_sample_rate(self, rate_hz):
+        """Setzt die ADXL345-Abtastrate auf 25, 50, 100, 200 oder 400 Hz."""
+        rates = {
+            25: self.RATE_25HZ,
+            50: self.RATE_50HZ,
+            100: self.RATE_100HZ,
+            200: self.RATE_200HZ,
+            400: self.RATE_400HZ,
+        }
+        if rate_hz not in rates:
+            raise ValueError("Abtastrate muss 25, 50, 100, 200 oder 400 Hz sein.")
+        self._write_register(self.REG_BW_RATE, rates[rate_hz])
 
     # -----------------------------------------------------------------------
     # Diagnose
