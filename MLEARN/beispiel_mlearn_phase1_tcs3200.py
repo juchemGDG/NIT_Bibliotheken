@@ -1,5 +1,5 @@
 """
-Beispiel fuer NIT Bibliothek: MLEARN2
+Beispiel fuer NIT Bibliothek: MLEARN
 Zeigt: Phase 1 - Daten sammeln mit TCS3200 Farbsensor
 Hardware: ESP32 + TCS3200 + Taster an GPIO 12
 """

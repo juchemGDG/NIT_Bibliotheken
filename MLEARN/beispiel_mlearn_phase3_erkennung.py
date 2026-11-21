@@ -1,5 +1,5 @@
 """
-Beispiel fuer NIT Bibliothek: MLEARN2
+Beispiel fuer NIT Bibliothek: MLEARN
 Zeigt: Phase 3 - Live-Erkennung mit gespeichertem Modell
 Hardware: ESP32 + AS7262 (oder TCS3200) + gespeichertes Modell
 """

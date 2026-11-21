@@ -1,5 +1,5 @@
 """
-Beispiel fuer NIT Bibliothek: MLEARN2
+Beispiel fuer NIT Bibliothek: MLEARN
 Zeigt: Kompletter ML-Workflow in einem Programm
        Phase 1: Daten sammeln -> Phase 2: Training -> Phase 3: Erkennung
 Hardware: ESP32 + AS7262 + Taster an GPIO 12

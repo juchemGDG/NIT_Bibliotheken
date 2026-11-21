@@ -1,5 +1,5 @@
 """
-Beispiel fuer NIT Bibliothek: MLEARN2
+Beispiel fuer NIT Bibliothek: MLEARN
 Zeigt: Didaktische Funktionen -- Daten verstehen, Modelle erklaeren
 Hardware: ESP32 mit MicroPython und CSV-Datei im Dateisystem
 """

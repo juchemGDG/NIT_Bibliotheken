@@ -182,8 +182,8 @@ ESPNowMQTT(esp, broker_mac=None, require_connect=False)
 - `beispiel_espnow.py`: Textnachrichten zwischen zwei ESP32 senden/empfangen
 - `beispiel_espnow_json.py`: Dictionaries per JSON austauschen
 - `beispiel_espnow_mqtt_lite.py`: Brokerloses publish/subscribe mit Topics
-- `beispiel_espnow_broker.py`: ESP32 als Mini-Broker mit Topic-Verteilung
-- `beispiel_espnow_mqtt_client_subscirbe.py`: Minimaler Subscribe-Client fuer den Mini-Broker mit `connect_id`, Subscribe auf `10C/#` und einfacher Empfangsschleife
+- `beispiel_espnow_mqtt_broker.py`: ESP32 als Mini-Broker mit Topic-Verteilung
+- `beispiel_espnow_mqtt_client_subscribe.py`: Minimaler Subscribe-Client fuer den Mini-Broker mit `connect_id`, Subscribe auf `10C/#` und einfacher Empfangsschleife
 - `beispiel_espnow_mqtt_client_publish.py`: Minimaler Publish-Client fuer den Mini-Broker mit `connect_id` und periodischem Senden auf `10C/zaehler`
 
 
@@ -270,8 +270,8 @@ Wenn ein ESP32 als Verteiler arbeiten soll, kannst du das mit den neuen Beispiel
 - Vorher beide Dateien auf alle beteiligten Geraete kopieren:
 - `nitbw_espnow.py`
 - `nitbw_espnow_mqtt.py`
-- `beispiel_espnow_broker.py` auf dem Broker-ESP32 starten
-- `beispiel_espnow_mqtt_client_subscirbe.py` auf dem Empfaenger-ESP32 starten
+- `beispiel_espnow_mqtt_broker.py` auf dem Broker-ESP32 starten
+- `beispiel_espnow_mqtt_client_subscribe.py` auf dem Empfaenger-ESP32 starten
 - `beispiel_espnow_mqtt_client_publish.py` auf dem Sender-ESP32 starten
 
 Hinweis: Beide Minimalbeispiele nutzen optional `connect_id`.

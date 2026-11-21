@@ -11,12 +11,13 @@ Konventionen fuer neue Bibliotheken sind in [`.github/copilot-instructions.md`](
 | Bibliothek | Moduldatei | Beispiele (Auswahl) | Version |
 |---|---|---|---|
 | LCD | `LCD/nitbw_lcd.py` | `LCD/beispiel_lcd.py`, `LCD/beispiel_lcd_funktionen.py` | 1.2.0 |
-| OLED | `OLED/nitbw_oled.py` | `OLED/beispiel_oled_schnellstart.py`, `OLED/beispiel_oled.py` | 1.2.0 |
+| OLED | `OLED/nitbw_oled.py` | `OLED/beispiel_oled_schnellstart.py`, `OLED/beispiel_oled.py` | 1.5.0 |
 | BME280 | `BME280/nitbw_bme280.py` | `BME280/beispiel_bme280.py` | 1.1.0 |
 | DS18B20 | `DS18B20/nitbw_ds18b20.py` | `DS18B20/beispiel_ds18b20.py`, `DS18B20/beispiel_ds18b20_mehrere.py` | 1.0.0 |
 | COMPASS | `COMPASS/nitbw_compass.py` | `COMPASS/beispiel_compass.py`, `COMPASS/beispiel_compass_rotation.py` | 1.3.0 |
 | MLEARN | `MLEARN/nitbw_mlearn.py` | `MLEARN/beispiel_mlearn.py` | 2.2.1 |
 | MLEARN-Vibration | `MLEARN/nitbw_vibration.py` | `MLEARN/beispiel_vibration_adxl345.py` | 1.0.0 |
+| MLEARN-Datensammler | `MLEARN/nitbw_datensammler.py` | `MLEARN/beispiel_mlearn_phase1_as7262.py`, `MLEARN/beispiel_mlearn_phase1_tcs3200.py` | 1.0.0 |
 | AS7262 | `AS7262/nitbw_as7262.py` | `AS7262/beispiel_as7262.py`, `AS7262/beispiel_as7262_kalibriert.py` | 2.0.0 |
 | RTC | `RTC/nitbw_rtc.py` | `RTC/beispiel_rtc.py`, `RTC/beispiel_rtc_komplett.py` | 1.2.0 |
 | Servo | `Servo/nitbw_servo.py` | `Servo/beispiel_servo.py`, `Servo/beispiel_servo_continuous.py` | 1.1.0 |
@@ -24,6 +25,7 @@ Konventionen fuer neue Bibliotheken sind in [`.github/copilot-instructions.md`](
 | TOF | `TOF/nitbw_tof.py` | `TOF/beispiel_tof.py`, `TOF/beispiel_tof_modi.py`, `TOF/beispiel_tof_kalibrierung.py` | 1.2.0 |
 | TCS3200 | `TCS3200/nitbw_tcs3200.py` | `TCS3200/beispiel_tcs3200.py`, `TCS3200/beispiel_tcs3200_rgb.py` | 1.0.0 |
 | ESPNOW | `ESPNOW/nitbw_espnow.py` | `ESPNOW/beispiel_espnow.py`, `ESPNOW/beispiel_espnow_json.py` | 1.0.0 |
+| ESPNOW-MQTT | `ESPNOW/nitbw_espnow_mqtt.py` | `ESPNOW/beispiel_espnow_mqtt_broker.py`, `ESPNOW/beispiel_espnow_mqtt_client_publish.py`, `ESPNOW/beispiel_espnow_mqtt_client_subscribe.py` | 2.0.0 |
 | MQTT | `MQTT/nitbw_mqtt.py` | `MQTT/beispiel_mqtt.py`, `MQTT/beispiel_mqtt_reconnect.py` | 1.0.0 |
 | MP3 | `MP3/nitbw_mp3.py` | `MP3/beispiel_mp3.py`, `MP3/beispiel_mp3_ordner.py` | 1.0.0 |
 | INA219 | `INA219/nitbw_ina219.py` | `INA219/beispiel_ina219.py`, `INA219/beispiel_ina219_lastprofil.py` | 1.0.0 |
@@ -33,12 +35,15 @@ Konventionen fuer neue Bibliotheken sind in [`.github/copilot-instructions.md`](
 | Puls | `PULS/nitbw_puls.py` | `PULS/beispiel_puls.py`, `PULS/beispiel_puls_bpm.py` | 1.0.0 |
 | STEPPER | `STEPPER/nitbw_stepper.py` | `STEPPER/beispiel_stepper_uln.py`, `STEPPER/beispiel_stepper_dir.py` | 1.2.0 |
 | GY61 | `GY61/nitbw_gy61.py` | `GY61/beispiel_gy61.py`, `GY61/beispiel_gy61_kalibrierung.py` | 1.0.0 |
+| KY023 | `KY023/nitbw_ky023.py` | `KY023/beispiel_ky023.py`, `KY023/beispiel_ky023_richtung.py`, `KY023/beispiel_ky023_kalibrierung.py` | 1.0.0 |
 | MPU6050 | `MPU6050/nitbw_mpu6050.py` | `MPU6050/beispiel_mpu6050.py`, `MPU6050/beispiel_mpu6050_neigung.py` | 1.0.0 |
 | HX711AD | `HX711AD/nitbw_hx711ad.py` | `HX711AD/beispiel_hx711ad.py`, `HX711AD/beispiel_hx711ad_kalibrierung.py` | 1.0.0 |
 | ACS758 | `ACS758/nitbw_acs758.py` | `ACS758/beispiel_acs758.py`, `ACS758/beispiel_acs758_kalibrierung.py` | 1.0.0 |
-| BH1750 | `BH1750/nitbw_bh1750.py` | `BH1750/beispiel_bh1750.py`, `BH1750/beispiel_bh1750_daemmerung.py` | 1.0.0 |
+| BH1750 | `BH1750/nitbw_bh1750.py` | `BH1750/beispiel_bh1750.py`, `BH1750/beispiel_bh1750_daemmerung.py` | 1.1.0 |
 | BMP280 | `BMP280/nitbw_bmp280.py` | `BMP280/beispiel_bmp280.py`, `BMP280/beispiel_bmp280_hoehenmesser.py` | 1.0.0 |
 | PID | `PID/nitbw_pid.py` | `PID/beispiel_pid.py`, `PID/beispiel_pid_vergleich.py`, `PID/beispiel_pid_zweipunkt.py`, `PID/beispiel_pid_temperatur.py`, `PID/beispiel_pid_reglerlab.py` | 1.0.0 |
+| Motor | `MOTOR/nitbw_motor.py` | `MOTOR/beispiel_motor.py`, `MOTOR/beispiel_motor_fahrwerk.py`, `MOTOR/beispiel_motor_taster.py` | 1.0.0 |
+| SDKarte | `SDKARTE/nitbw_sdkarte.py` | `SDKARTE/beispiel_sdkarte.py`, `SDKARTE/beispiel_sdkarte_datenlogger.py` | 1.0.0 |
 
 ## Schnellstart-Muster
 
@@ -105,7 +110,7 @@ print(model.predict_knn([5.1, 3.5, 1.4, 0.2]))
 ```
 
 ```python
-# Beispiel MLEARN2 mit AS7262
+# Beispiel MLEARN (Random Forest) mit AS7262-Farbdaten
 from nitbw_mlearn import MLearn
 model = MLearn(k=3)
 model.load_csv('farben.csv', target=6)
@@ -156,7 +161,6 @@ print(sensor.read_all())
 - `DS18B20/README.md`
 - `COMPASS/README.md`
 - `MLEARN/README.md`
-- `MLEARN2/README.md`
 - `RTC/README.md`
 - `Servo/README.md`
 - `ULTRASCHALL/README.md`
@@ -173,11 +177,15 @@ print(sensor.read_all())
 - `PULS/README.md`
 - `STEPPER/README.md`
 - `GY61/README.md`
+- `KY023/README.md`
 - `MPU6050/README.md`
 - `HX711AD/README.md`
 - `ACS758/README.md`
 - `BH1750/README.md`
 - `BMP280/README.md`
+- `PID/README.md`
+- `MOTOR/README.md`
+- `SDKARTE/README.md`
 
 ## Lizenz
 
