@@ -1,5 +1,5 @@
 """
-Beispiel fuer NIT Bibliothek: MLEARN2
+Beispiel fuer NIT Bibliothek: MLEARN
 Zeigt: Phase 1 - Daten sammeln mit AS7262 Spektralsensor
 Hardware: ESP32 + AS7262 + Taster an GPIO 12
 """

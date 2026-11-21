@@ -1,5 +1,5 @@
 """
-Beispiel fuer NIT Bibliothek: MLEARN2
+Beispiel fuer NIT Bibliothek: MLEARN
 Zeigt: Phase 2 - Training und Vergleich aller ML-Modelle
 Hardware: ESP32 mit MicroPython und CSV-Datei im Dateisystem
 """
