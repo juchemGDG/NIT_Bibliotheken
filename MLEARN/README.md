@@ -117,13 +117,20 @@ print(pred)
 
 ## API-Referenz
 
-### Konstruktor: `MLearn(k=3, lr=0.1, epochs=200)`
+### Konstruktor: `MLearn(k=3, lr=None, epochs=200, lr_netz=None)`
 
 | Parameter | Typ | Standard | Beschreibung |
 |---|---|---|---|
 | `k` | `int` | `3` | Anzahl Nachbarn fuer kNN |
-| `lr` | `float` | `0.1` | Lernrate fuer logReg und Netz |
+| `lr` | `float` | `0.1` | Lernrate fuer logReg. Wird `lr` angegeben (und `lr_netz` nicht), gilt der Wert wie bisher auch fuer das Netz |
 | `epochs` | `int` | `200` | Trainingsdurchlaeufe fuer logReg und Netz |
+| `lr_netz` | `float` | `0.02` | Lernrate fuer das neuronale Netz (falls weder `lr_netz` noch `lr` angegeben: `0.02`) |
+
+**Lernrate fuer das Netz:** Das Netz braucht meist eine kleinere Lernrate als die
+logistische Regression. Mit `0.1` divergiert es leicht: Die Loss steigt, das Netz
+raet nur noch (z. B. 25 % bei vier Klassen). `train_netz()` gibt dann eine Warnung
+aus. Abhilfe: `train_netz(lr=0.01)` oder `MLearn(lr_netz=0.01)`. Prioritaet:
+`train_netz(lr=...)` vor `lr_netz` vor `lr` (falls angegeben) vor `0.02`.
 
 ### Daten
 
@@ -133,7 +140,7 @@ print(pred)
 | `add_sample(features, label)` | - | Einzelnen Datenpunkt hinzufuegen |
 | `clear_data()` | - | Alle Daten loeschen |
 | `daten_info(feature_namen)` | - | Datensatz-Ueberblick anzeigen |
-| `split_data(anteil_test, seed)` | (train, test) | Daten aufteilen |
+| `split_data(anteil_test, seed)` | (train, test) | Daten aufteilen (`seed=None` = zufaellig; laeuft auch am Rechner unter CPython) |
 
 ### Algorithmen
 
@@ -144,7 +151,7 @@ print(pred)
 | `predict_logreg_proba(features)` | float | Wahrscheinlichkeit fuer Klasse 1 |
 | `train_tree(max_depth)` / `predict_tree(features)` | float | Decision Tree |
 | `train_forest(n_trees, max_depth)` / `predict_forest(features)` | float | Random Forest (1-7 Baeume) |
-| `train_netz(hidden, epochs, lr)` / `predict_netz(features)` | float | Neuronales Netz |
+| `train_netz(hidden, epochs, lr)` / `predict_netz(features)` | float | Neuronales Netz; `lr=None` nimmt `lr_netz` (Standard `0.02`), warnt bei steigender Loss |
 | `predict_netz_wahrscheinlichkeiten(features)` | dict | Wahrscheinlichkeiten pro Klasse |
 
 ### Bewertung
@@ -153,7 +160,7 @@ print(pred)
 |---|---|---|
 | `accuracy(test_data, predict_fn)` | float | Genauigkeit 0.0-1.0 |
 | `konfusionsmatrix(test_data, predict_fn)` | dict | Matrix + Textausgabe |
-| `vergleiche(test_data, label_namen)` | dict | Alle Modelle trainieren und vergleichen |
+| `vergleiche(test_data, label_namen)` | dict | Alle bereits trainierten Modelle vergleichen (kNN, LogReg, Tree, Forest, Netz) |
 
 ### Didaktik (Erklaerungsfunktionen)
 
@@ -180,7 +187,7 @@ print(pred)
 | `scale_features(features)` | list | Min-Max-Skalierung (nach train_knn) |
 | `euclidean_distance(p1, p2)` | float | Euklidischer Abstand |
 | `gini(labels)` | float | Gini-Index einer Labelgruppe |
-| `print_tree(node_index, depth)` | - | Baumstruktur anzeigen |
+| `print_tree(node_index=0, depth=0, feature_namen=None)` | - | Baumstruktur anzeigen; mit `feature_namen` z. B. `if std_y <= 36.85:` statt `if feature[3] <= 36.85:` |
 
 ### Datensammler: `DatenSammler(taster_pin, csv_datei, spaltennamen, separator)`
 
@@ -265,7 +272,7 @@ model.data = train
 model.train_tree(max_depth=4)
 print("Accuracy: {:.1f}%".format(model.accuracy(test, model.predict_tree) * 100))
 model.konfusionsmatrix(test, model.predict_tree)
-model.print_tree()
+model.print_tree(feature_namen=['violett', 'blau', 'gruen', 'gelb', 'orange', 'rot'])
 ```
 
 ### Snippet 2: Random Forest (7 Baeume)

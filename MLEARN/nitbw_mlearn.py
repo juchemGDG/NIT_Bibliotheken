@@ -2,7 +2,7 @@
 NIT Bibliothek: MLEARN - ML-Algorithmen fuer MicroPython
 Fuer ESP32 mit MicroPython
 
-Version:    2.2.1
+Version:    2.3.0
 Autor:      Stephan Juchem, Volker Rust / nitbw
 Lizenz:     MIT (siehe LICENSE)
 Erstellt:   2026-03
@@ -52,17 +52,28 @@ class MLearn:
     Schnittstelle: Dateisystem (CSV) oder direkte Dateneingabe
     """
 
-    def __init__(self, k=3, lr=0.1, epochs=200):
+    # Standard-Lernraten. Das Netz braucht meist eine kleinere Lernrate
+    # als die logistische Regression; bei 0.1 divergiert es leicht.
+    LR_STANDARD = 0.1
+    LR_NETZ_STANDARD = 0.02
+
+    def __init__(self, k=3, lr=None, epochs=200, lr_netz=None):
         """
         Erstellt ein neues MLearn-Objekt.
 
         Args:
-            k:      Anzahl Nachbarn fuer kNN (Standard: 3)
-            lr:     Lernrate fuer logistische Regression und Netz (Standard: 0.1)
-            epochs: Trainingsdurchlaeufe fuer logReg und Netz (Standard: 200)
+            k:       Anzahl Nachbarn fuer kNN (Standard: 3)
+            lr:      Lernrate fuer die logistische Regression (Standard: 0.1).
+                     Wird lr angegeben und lr_netz nicht, gilt lr wie bisher
+                     auch fuer das Netz.
+            epochs:  Trainingsdurchlaeufe fuer logReg und Netz (Standard: 200)
+            lr_netz: Lernrate fuer das neuronale Netz. Standard: lr, falls
+                     angegeben, sonst 0.02.
         """
         self.k = k
-        self.lr = lr
+        self._lr_angegeben = lr is not None
+        self.lr = self.LR_STANDARD if lr is None else lr
+        self.lr_netz = lr_netz
         self.epochs = epochs
 
         # Rohdaten: Liste von (features, label) Tupeln
@@ -215,7 +226,11 @@ class MLearn:
         """
         if seed is None:
             import time
-            seed = time.ticks_ms()
+            try:
+                seed = time.ticks_ms()
+            except AttributeError:
+                # Am Rechner (CPython) gibt es kein ticks_ms().
+                seed = int(time.time() * 1000) & 0x7FFFFFFF
         _set_seed(seed)
 
         # Daten mischen (Fisher-Yates-Shuffle)
@@ -790,7 +805,7 @@ class MLearn:
     # BAUM AUSGEBEN
     # ---------------------------------------------------------
 
-    def print_tree(self, node_index=0, depth=0):
+    def print_tree(self, node_index=0, depth=0, feature_namen=None):
         """
         Gibt den Decision Tree als lesbaren Text aus.
 
@@ -799,6 +814,12 @@ class MLearn:
             -> Label: 3.0
           else:
             -> Label: 5.0
+
+        Args:
+            node_index:    Startknoten (Standard: Wurzel)
+            depth:         Einrueckungstiefe (Standard: 0)
+            feature_namen: Optionale Liste mit Feature-Namen, dann z.B.
+                           "if std_y <= 36.85:" statt "if feature[3] <= 36.85:"
         """
         node = self.tree[node_index]
         indent = "  " * depth
@@ -810,11 +831,15 @@ class MLearn:
         f = node["feature"]
         t = node["threshold"]
 
-        print("{}if feature[{}] <= {}:".format(indent, f, t))
-        self.print_tree(node["left"], depth + 1)
+        f_name = "feature[{}]".format(f)
+        if feature_namen and f < len(feature_namen):
+            f_name = feature_namen[f]
 
-        print("{}else:  # feature[{}] > {}".format(indent, f, t))
-        self.print_tree(node["right"], depth + 1)
+        print("{}if {} <= {}:".format(indent, f_name, t))
+        self.print_tree(node["left"], depth + 1, feature_namen)
+
+        print("{}else:  # {} > {}".format(indent, f_name, t))
+        self.print_tree(node["right"], depth + 1, feature_namen)
 
     def erklaere_tree(self, features, feature_namen=None, label_namen=None):
         """
@@ -1078,7 +1103,10 @@ class MLearn:
             hidden:  Anzahl Neuronen in der versteckten Schicht.
                      Faustregel: etwa so viele wie Klassen, oder etwas mehr.
             epochs:  Trainingsdurchlaeufe (Standard: self.epochs)
-            lr:      Lernrate (Standard: self.lr)
+            lr:      Lernrate. Standard: lr_netz aus dem Konstruktor; sonst
+                     lr aus dem Konstruktor, falls dort angegeben; sonst 0.02.
+                     Ist sie zu gross, "explodiert" das Training: Die Loss
+                     steigt, das Netz raet nur noch. Dann z.B. lr=0.01 versuchen.
         """
         if not self.data:
             raise ValueError("Keine Trainingsdaten vorhanden.")
@@ -1086,7 +1114,13 @@ class MLearn:
         if epochs is None:
             epochs = self.epochs
         if lr is None:
-            lr = self.lr
+            if self.lr_netz is not None:
+                lr = self.lr_netz
+            elif self._lr_angegeben or self.lr != self.LR_STANDARD:
+                # Bisheriges Verhalten: MLearn(lr=...) gilt auch fuers Netz.
+                lr = self.lr
+            else:
+                lr = self.LR_NETZ_STANDARD
 
         n_features = len(self.data[0][0])
 
@@ -1131,6 +1165,10 @@ class MLearn:
         self._nn_b2 = [0.0] * n_output
 
         # ---- Training (Backpropagation) ----
+        start_loss = None
+        gewarnt = False
+        avg_loss = 0.0
+
         for epoche in range(epochs):
             gesamt_loss = 0.0
 
@@ -1165,9 +1203,11 @@ class MLearn:
 
                 # === LOSS BERECHNEN ===
                 # Cross-Entropy-Loss fuer den richtigen Label-Index
+                # Wert nach unten begrenzen statt ueberspringen: Gerade wenn
+                # das Netz voellig danebenliegt (p fast 0), muss der grosse
+                # Fehler in die Loss eingehen. log(0) waere unendlich.
                 p = output_prob[idx_label]
-                if p > 1e-15:
-                    gesamt_loss -= math.log(p)
+                gesamt_loss -= math.log(max(p, 1e-15))
 
                 # === BACKWARD PASS (Backpropagation) ===
                 # Schritt 1: Fehler am Output berechnen
@@ -1198,11 +1238,29 @@ class MLearn:
                 for h in range(hidden):
                     self._nn_b1[h] -= lr * d_hidden[h]
 
+            avg_loss = gesamt_loss / len(self.data)
+            if start_loss is None:
+                start_loss = avg_loss
+
             # Fortschritt alle 10 Epochen anzeigen
             if (epoche + 1) % 10 == 0 or epoche == 0:
-                avg_loss = gesamt_loss / len(self.data)
                 print("Epoche {:>4d}/{}: Loss = {:.8f}".format(
                     epoche + 1, epochs, avg_loss))
+
+            # Warnung, wenn das Training "explodiert" (Loss steigt stark
+            # oder wird nan). nan erkennt man daran, dass nan != nan ist.
+            kaputt = avg_loss != avg_loss or avg_loss > 1e300
+            if not gewarnt and (kaputt or avg_loss > start_loss * 1.5):
+                gewarnt = True
+                print("WARNUNG: Die Loss steigt stark an (Epoche {}).".format(epoche + 1))
+                print("         Lernrate lr={} vermutlich zu gross,".format(lr))
+                print("         z.B. train_netz(lr={}) versuchen.".format(lr / 5))
+
+        # Schlechter als Raten? Bei n Klassen liegt die Loss beim Raten
+        # bei ln(n), z.B. 1.39 bei vier Klassen.
+        if not gewarnt and n_output > 1 and avg_loss >= math.log(n_output):
+            print("WARNUNG: Das Netz ist nicht besser als Raten (Loss {:.2f}).".format(avg_loss))
+            print("         Lernrate lr={} anpassen oder mehr Epochen versuchen.".format(lr))
 
     def predict_netz(self, features):
         """
@@ -1348,7 +1406,7 @@ class MLearn:
                 pass
 
         # Neuronales Netz – pruefe ob Gewichte vorhanden
-        if getattr(self, 'w_hidden', None):
+        if self._nn_w1 is not None:
             try:
                 acc = self.accuracy(test_data, self.predict_netz)
                 ergebnisse["Neuronales Netz"] = acc
