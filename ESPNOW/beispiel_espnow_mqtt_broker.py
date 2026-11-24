@@ -2,6 +2,12 @@
 Beispiel fuer NIT Bibliothek: ESPNOW Mini-Broker
 Zeigt: Ein ESP32 uebernimmt Broker-Rolle und verteilt Publish-Nachrichten
 Hardware: 1x ESP32 als Broker, 2+ ESP32 als Clients
+
+Hinweise:
+- Fremde Funknachrichten anderer ESP32 im Raum (kein JSON, anderes
+  Protokoll) werden ignoriert; der Broker laeuft ohne eigenes try weiter.
+- Beim Start meldet der Broker sich per Broadcast ("broker_start").
+  Clients erneuern daraufhin ihre Abos automatisch.
 """
 
 from nitbw_espnow import ESPNow

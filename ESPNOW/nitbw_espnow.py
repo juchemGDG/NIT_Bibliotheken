@@ -2,7 +2,7 @@
 NIT Bibliothek: ESPNOW - Einfache Funknachrichten zwischen ESP32-Boards
 Fuer ESP32 mit MicroPython
 
-Version:    1.0.0
+Version:    1.1.0
 Autor:      Stephan Juchem / nitbw
 Lizenz:     MIT (siehe LICENSE)
 Erstellt:   2026-04
@@ -89,6 +89,13 @@ class ESPNow:
         Args:
             mac: Ziel-MAC als String (AA:BB:CC:DD:EE:FF)
             data: bytes, str, dict, list, int, float oder bool
+
+        Returns:
+            True, wenn der Empfaenger den Empfang auf Funkebene bestaetigt
+            hat, False, wenn keine Bestaetigung kam (z. B. Empfaenger aus
+            oder ausser Reichweite).
+            Bei Broadcast ist der Wert nicht aussagekraeftig, weil
+            Broadcast-Nachrichten nicht bestaetigt werden.
         """
         mac_str = self._normalize_mac_str(mac)
         mac_bytes = self._mac_str_to_bytes(mac_str)
@@ -98,11 +105,14 @@ class ESPNow:
         self._ensure_peer(mac_str)
 
         try:
-            self._esp.send(mac_bytes, payload)
+            ergebnis = self._esp.send(mac_bytes, payload)
         except OSError:
             raise OSError("Senden fehlgeschlagen. Peer nicht gefunden oder Funkproblem: {}".format(mac_str))
 
-        return True
+        # Manche Firmware-Varianten liefern None statt True/False.
+        if ergebnis is None:
+            return True
+        return bool(ergebnis)
 
     def receive(self, timeout_ms=None, decode=True):
         """
@@ -147,14 +157,26 @@ class ESPNow:
     # ================================================================
 
     def send_json(self, mac, data_dict):
-        """Sendet ein Dictionary als JSON."""
+        """
+        Sendet ein Dictionary als JSON.
+
+        Returns:
+            Wie send(): True = Empfang bestaetigt, False = keine Bestaetigung.
+        """
         if not isinstance(data_dict, dict):
             raise TypeError("send_json erwartet ein Dictionary")
         return self.send(mac, json.dumps(data_dict))
 
-    def receive_json(self, timeout_ms=None):
+    def receive_json(self, timeout_ms=None, ignore_invalid=False):
         """
         Empfaengt JSON und konvertiert zu dict.
+
+        Args:
+            timeout_ms: Timeout in Millisekunden (None = blockend)
+            ignore_invalid: Bei False (Standard) wird bei ungueltigem JSON
+                oder JSON ohne Dictionary ein ValueError geworfen.
+                Bei True wird stattdessen (None, None) zurueckgegeben,
+                z. B. wenn ein anderer ESP32 im Raum einfachen Text sendet.
 
         Returns:
             (dict_msg, sender_mac) oder (None, None)
@@ -165,10 +187,14 @@ class ESPNow:
 
         try:
             data = json.loads(msg)
-        except ValueError:
+        except Exception:
+            if ignore_invalid:
+                return None, None
             raise ValueError("Empfangene Nachricht ist kein gueltiges JSON")
 
         if not isinstance(data, dict):
+            if ignore_invalid:
+                return None, None
             raise ValueError("JSON ist gueltig, aber kein Dictionary")
 
         return data, sender
@@ -205,7 +231,12 @@ class ESPNow:
         return True
 
     def broadcast(self, data):
-        """Sendet Daten als Broadcast an alle erreichbaren ESP-NOW-Geraete."""
+        """
+        Sendet Daten als Broadcast an alle erreichbaren ESP-NOW-Geraete.
+
+        Hinweis: Broadcasts werden nicht bestaetigt, der Rueckgabewert
+        sagt daher nichts darueber aus, ob jemand die Nachricht empfangen hat.
+        """
         return self.send(self.BROADCAST_MAC, data)
 
     # ================================================================

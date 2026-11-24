@@ -27,6 +27,9 @@ dadurch den Beispielcode deutlich.
 - Optionaler Callback-Empfang mit `on_receive(callback)` (firmware-abhaengig)
 - Hilfsfunktion `scan_peers()` fuer bereits bekannte/verwendete Peers
 - Sprechende Fehlermeldungen bei MAC- oder Sendeproblemen
+- `send()` meldet, ob der Empfaenger den Empfang bestaetigt hat (`True`/`False`)
+- Mini-Broker robust gegen fremde Funknachrichten; Clients erneuern ihre Abos
+  nach einem Broker-Neustart automatisch (siehe „Robustheit im Klassenraum“)
 
 ## Hardware
 
@@ -113,7 +116,7 @@ ESPNow()
 |---|---|---|
 | `init()` | bool | Initialisiert WLAN (STA) und ESP-NOW erneut |
 | `add_peer(mac)` | bool | Fuegt Peer hinzu (`True` neu, `False` bereits bekannt) |
-| `send(mac, data)` | bool | Sendet Daten, Peer wird bei Bedarf automatisch angelegt |
+| `send(mac, data)` | bool | Sendet Daten, Peer wird bei Bedarf automatisch angelegt. `True` = Empfaenger hat den Empfang auf Funkebene bestaetigt, `False` = keine Bestaetigung (bei Broadcast nicht aussagekraeftig) |
 | `receive(timeout_ms=None, decode=True)` | tuple | `(msg, sender_mac)` oder `(None, None)` |
 | `get_mac()` | str | Eigene MAC-Adresse als String |
 
@@ -121,11 +124,11 @@ ESPNow()
 
 | Methode | Rueckgabe | Beschreibung |
 |---|---|---|
-| `send_json(mac, data_dict)` | bool | Serialisiert Dictionary als JSON und sendet |
-| `receive_json(timeout_ms=None)` | tuple | `(dict_msg, sender_mac)` oder `(None, None)` |
+| `send_json(mac, data_dict)` | bool | Serialisiert Dictionary als JSON und sendet; Rueckgabe wie `send()` |
+| `receive_json(timeout_ms=None, ignore_invalid=False)` | tuple | `(dict_msg, sender_mac)` oder `(None, None)`. Bei ungueltigem JSON oder JSON ohne Dictionary: `ValueError`, mit `ignore_invalid=True` stattdessen `(None, None)` |
 | `on_receive(callback)` | bool | Registriert IRQ-Callback (nur falls Firmware dies unterstuetzt) |
-| `broadcast(data)` | bool | Sendet an `FF:FF:FF:FF:FF:FF` |
-| `publish(mac, topic, payload=None, subtopic=None)` | bool | Sendet MQTT-aehnliche Publish-Nachricht |
+| `broadcast(data)` | bool | Sendet an `FF:FF:FF:FF:FF:FF` (Rueckgabe nicht aussagekraeftig, Broadcasts werden nicht bestaetigt) |
+| `publish(mac, topic, payload=None, subtopic=None)` | bool | Sendet MQTT-aehnliche Publish-Nachricht; Rueckgabe wie `send()` |
 | `broadcast_publish(topic, payload=None, subtopic=None)` | bool | Sendet Publish als Broadcast |
 | `subscribe(topic, callback=None, subtopic=None)` | str | Abonniert Topic/Filter, optional mit Callback |
 | `submit(topic, callback=None, subtopic=None)` | str | Alias fuer `subscribe()` |
@@ -143,24 +146,28 @@ ESPNow()
 ### API fuer Mini-Broker-Helfer (`ESPNowMQTT`)
 
 ```python
-ESPNowMQTT(esp, broker_mac=None, require_connect=False)
+ESPNowMQTT(esp, broker_mac=None, require_connect=False, abo_erneuern_ms=None)
 ```
 
 | Parameter | Typ | Standard | Beschreibung |
 |---|---|---|---|
 | `esp` | ESPNow | - | Initialisiertes ESPNow-Objekt |
-| `broker_mac` | str/None | `None` | MAC des Brokers fuer Client-Betrieb |
+| `broker_mac` | str/None | `None` | MAC des Brokers fuer Client-Betrieb. Ohne `broker_mac` arbeitet das Objekt als Broker und sendet beim Erstellen einmal `broker_start` per Broadcast |
 | `require_connect` | bool | `False` | Wenn `True`, akzeptiert der Broker `subscribe`/`publish`/`unsubscribe` erst nach erfolgreichem `connect` |
+| `abo_erneuern_ms` | int/None | `None` | Nur Client: Wenn gesetzt (z. B. `60000`), erneuert `receive()` die gemerkten Abos automatisch nach dieser Zeit. `None` = keine automatische Erneuerung |
 
 #### Client-Methoden
 
 | Methode | Rueckgabe | Beschreibung |
 |---|---|---|
-| `connect_id(client_id, timeout_ms=800, max_nachrichten=4)` | tuple | Sendet `connect` an den Broker und wartet auf `connack`; Rueckgabe `(ok, reason, client_id)` |
-| `subscribe(topic_filter)` | bool | Sendet Subscribe an den Broker |
-| `unsubscribe(topic_filter)` | bool | Sendet Unsubscribe an den Broker |
-| `publish(topic, payload)` | bool | Sendet Publish an den Broker |
-| `receive(timeout_ms=80, nur_nicht_none=False, wartezeit_ms=None)` | tuple | `(msg_type, data, sender)` oder `(None, None, None)`; bei `nur_nicht_none=True` wartet die Methode intern bis eine Nachricht vorhanden ist, optional begrenzt durch `wartezeit_ms` |
+| `connect_id(client_id, timeout_ms=800, max_nachrichten=4)` | tuple | Sendet `connect` an den Broker und wartet auf `connack`; Rueckgabe `(ok, reason, client_id)`. Die ID wird fuer `erneuere_abos()` gemerkt |
+| `subscribe(topic_filter)` | bool | Sendet Subscribe an den Broker und merkt sich das Abo; `True` = Broker hat Empfang bestaetigt |
+| `unsubscribe(topic_filter)` | bool | Sendet Unsubscribe an den Broker und vergisst das Abo |
+| `publish(topic, payload)` | bool | Sendet Publish an den Broker; `True` = Broker hat Empfang bestaetigt, `False` = keine Bestaetigung |
+| `erneuere_abos()` | int | Sendet alle gemerkten Abos erneut (vorher `connect`, falls `connect_id()` benutzt wurde); Rueckgabe: Anzahl Abos |
+| `resubscribe()` | int | Englischer Alias fuer `erneuere_abos()` |
+| `list_abos()` | list | Gemerkte Abos dieses Clients |
+| `receive(timeout_ms=80, nur_nicht_none=False, wartezeit_ms=None)` | tuple | `(msg_type, data, sender)` oder `(None, None, None)`; `msg_type` z. B. `"deliver"`, `"ack"`, `"connack"`, `"broker_start"` (eigener Broker neu gestartet, Abos bereits erneuert) oder `"other"` (fremdes Protokoll oder kein JSON, `data` ist dann Dictionary bzw. Rohtext); bei `nur_nicht_none=True` wartet die Methode intern bis eine Nachricht vorhanden ist, optional begrenzt durch `wartezeit_ms` |
 | `zeige_nachrichten(max_nachrichten=8, timeout_ms=80, zeige_fremdprotokoll=False, nur_nicht_none=True, wartezeit_ms=None)` | None | Zeigt `deliver`/`ack` direkt auf der Konsole; standardmaessig wird auf die erste Nachricht gewartet, optional begrenzt durch `wartezeit_ms` |
 | `zeige_json(max_nachrichten=1, timeout_ms=80, include_sender=False, include_broker_mac=False, zeige_fremdprotokoll=False, nur_nicht_none=True, wartezeit_ms=None)` | dict/list/None | Liefert standardmaessig genau eine reduzierte `deliver`-JSON mit `topic` und `payload` (optional `sender`, `broker_mac`); bei `max_nachrichten>1` eine Liste; mit `wartezeit_ms` kann das Warten auf die erste Nachricht begrenzt werden |
 
@@ -168,12 +175,13 @@ ESPNowMQTT(esp, broker_mac=None, require_connect=False)
 
 | Methode | Rueckgabe | Beschreibung |
 |---|---|---|
-| `handle_broker_message(timeout_ms=400)` | bool | Verarbeitet genau eine Broker-Nachricht |
-| `send_connack(sender_mac, ok, reason="ok", client_id=None)` | None | Sendet Verbindungsantwort auf `connect` |
-| `add_subscription(sender_mac, topic_filter)` | None | Merkt Topic-Filter fuer einen Client |
+| `handle_broker_message(timeout_ms=400)` | bool | Verarbeitet genau eine Broker-Nachricht; fremde oder kaputte Nachrichten werden ignoriert (`False`), der Broker stuerzt nicht ab |
+| `broker_start()` | bool | Meldet den (Neu-)Start per Broadcast; wird im Konstruktor ohne `broker_mac` automatisch aufgerufen |
+| `send_connack(sender_mac, ok, reason="ok", client_id=None)` | bool | Sendet Verbindungsantwort auf `connect` |
+| `add_subscription(sender_mac, topic_filter)` | bool | Merkt Topic-Filter fuer einen Client; `True` = neues Abo, `False` = bestand schon |
 | `remove_subscription(sender_mac, topic_filter)` | None | Entfernt Topic-Filter fuer einen Client |
 | `forward_publish(sender_mac, topic, payload, exclude_sender=True)` | int | Leitet Publish an passende Subscriber weiter |
-| `send_ack(sender_mac, text)` | None | Sendet ACK-Text an Client |
+| `send_ack(sender_mac, text)` | bool | Sendet ACK-Text an Client |
 | `list_clients()` | list | Liefert aktuelle Zuordnung von `client_id` zu Client-MACs |
 | `topic_matches(topic_filter, topic)` | bool | Prueft Topic-Wildcards (`+`, `#`) |
 
@@ -260,7 +268,8 @@ if topic is not None:
 - Es gibt keinen Broker: Nachrichten werden direkt an einen Peer oder Broadcast gesendet.
 - Keine Benutzerverwaltung oder Authentifizierung eingebaut.
 - Topic-Wildcards in `subscribe()`:
-- `+` fuer genau eine Ebene, z. B. `sensoren/+/temperatur`
+  - `+` fuer genau eine Ebene, z. B. `sensoren/+/temperatur`
+  - `#` nur am Ende, z. B. `sensoren/#`
 
 
 ### ESP32 als Broker (optional)
@@ -286,7 +295,55 @@ Der Publisher sendet periodisch auf `10C/zaehler`, der Subscriber abonniert `10C
 - Der Broker beantwortet dies mit `connack` (`ok`/`reason`).
 - Mit `require_connect=True` im Broker werden `subscribe`/`publish`/`unsubscribe` erst nach erfolgreichem `connect` angenommen.
 - Ohne `require_connect` bleibt das bisherige Verhalten unveraendert.
-- `#` nur am Ende, z. B. `sensoren/#`
+
+### Robustheit im Klassenraum
+
+Viele ESP32 in einem Raum, haeufige Neustarts: Darauf sind Broker und Clients
+ab `nitbw_espnow_mqtt.py` 2.1.0 vorbereitet.
+
+**Fremde Nachrichten werden ignoriert.**
+Schickt ein anderer ESP32 einfachen Text (`esp.send(mac, "Hallo")`),
+`esp.broadcast(...)`, JSON ohne Dictionary (`[1, 2]`) oder Nachrichten eines
+anderen Protokolls, laeuft der Broker weiter. `handle_broker_message()` gibt
+dann `False` zurueck, `receive()` auf Client-Seite liefert `("other", data, sender)`.
+Ein `try`/`except` im eigenen Programm ist nicht noetig.
+
+`ESPNow.receive_json()` wirft bei ungueltigem JSON weiterhin einen `ValueError`
+(bestehende Programme verhalten sich unveraendert). Mit
+`receive_json(ignore_invalid=True)` kommt stattdessen `(None, None)` zurueck.
+
+**Abos werden nach einem Broker-Neustart erneuert.**
+Der Broker speichert Abos nur im Arbeitsspeicher. Nach Reset, Stromausfall oder
+neuem Hochladen sind sie weg. Deshalb:
+
+- Clients merken sich ihre Abos (`subscribe()`/`unsubscribe()`).
+- Der Broker sendet beim Start einmal `broker_start` per Broadcast.
+  Clients mit dieser Broker-MAC erneuern ihre Abos dann sofort und automatisch
+  (beim naechsten Aufruf von `receive()`, `zeige_json()` oder `zeige_nachrichten()`).
+  `receive()` liefert dabei `("broker_start", data, sender)`; darauf reagieren
+  kann das Programm, muss es aber nicht.
+- Als Rueckfallebene (z. B. Client war beim Broker-Start gerade aus) erneuert
+  `ESPNowMQTT(esp, BROKER_MAC, abo_erneuern_ms=60000)` die Abos jede Minute.
+  Von Hand geht es mit `mqtt.erneuere_abos()`.
+- Doppelte Abos erzeugen keine doppelten Nachrichten. Automatische Erneuerungen
+  werden vom Broker nicht mit `ack` beantwortet und stoeren daher nicht.
+
+Hinweis: Ein reiner Publish-Client ruft nie `receive()` auf und bemerkt den
+Neustart daher nicht. Das ist nur bei `require_connect=True` im Broker relevant:
+Dann muss der Publisher nach einem Broker-Neustart `connect_id()` erneut aufrufen
+(oder regelmaessig `mqtt.erneuere_abos()`).
+
+**Wurde die Nachricht empfangen?**
+`send()`, `send_json()`, `publish()` usw. geben `True` zurueck, wenn der
+Empfaenger den Empfang auf Funkebene bestaetigt hat, sonst `False`. So kann z. B.
+eine Messstation zaehlen, wie viele Werte nicht angekommen sind. Bei Broadcast
+ist der Wert nicht aussagekraeftig.
+
+```python
+fehlversuche = 0
+if not mqtt.publish("10C/temperatur", 21.5):
+    fehlversuche += 1
+```
 
 ## Lizenz
 

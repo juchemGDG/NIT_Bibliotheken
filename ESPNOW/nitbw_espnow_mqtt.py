@@ -2,15 +2,24 @@
 NIT Bibliothek: ESPNOW MQTT-Helfer fuer Mini-Broker
 Fuer ESP32 mit MicroPython
 
-Version:    2.0.0
+Version:    2.1.0
 Autor:      Stephan Juchem / nitbw
 Lizenz:     MIT (siehe LICENSE)
 Erstellt:   2026-05
 
 Ergaenzt nitbw_espnow.py um einfache Broker/Client-Helfer
 fuer das Protokoll "nitbw-mqtt-lite-broker".
+
+Robustheit (ab 2.1.0):
+- Fremde oder kaputte Funknachrichten (kein JSON, kein Dictionary,
+  anderes Protokoll) werden ignoriert, Broker und Clients laufen weiter.
+- Clients merken sich ihre Abos und koennen sie erneuern
+  (erneuere_abos(), automatisch mit abo_erneuern_ms).
+- Der Broker meldet seinen Start per Broadcast ("broker_start"),
+  Clients erneuern daraufhin automatisch ihre Abos.
 """
 
+import json
 import time
 
 
@@ -19,51 +28,138 @@ class ESPNowMQTT:
 
     PROTO = "nitbw-mqtt-lite-broker"
 
-    def __init__(self, esp, broker_mac=None, require_connect=False):
+    # Nachrichtentypen, die nur vom Broker an Clients gehen.
+    # Ein Broker beantwortet diese nie (verhindert Endlos-Ping-Pong,
+    # wenn mehrere Broker im selben Raum laufen).
+    _CLIENT_TYPEN = ("ack", "connack", "deliver", "broker_start")
+
+    def __init__(self, esp, broker_mac=None, require_connect=False, abo_erneuern_ms=None):
+        """
+        Args:
+            esp: Initialisiertes ESPNow-Objekt
+            broker_mac: MAC des Brokers (Client-Betrieb). Bei None arbeitet
+                das Objekt als Broker und meldet seinen Start per Broadcast.
+            require_connect: Broker akzeptiert subscribe/publish/unsubscribe
+                erst nach erfolgreichem connect.
+            abo_erneuern_ms: Nur Client: Wenn gesetzt (z. B. 60000), erneuert
+                receive() die Abos automatisch nach dieser Zeit.
+                None = keine automatische Erneuerung.
+        """
         self.esp = esp
         self.broker_mac = broker_mac
         self.require_connect = require_connect
+        self.abo_erneuern_ms = abo_erneuern_ms
+
+        # Broker-Daten
         self._subscriptions = {}
         self._clients_by_mac = {}
         self._mac_by_client_id = {}
+
+        # Client-Daten
+        self._abos = []
+        self._client_id = None
+        self._letzte_erneuerung_ms = time.ticks_ms()
+
+        if broker_mac is None:
+            self.broker_start()
 
     # ================================================================
     # Client-Helfer
     # ================================================================
 
     def subscribe(self, topic_filter):
-        """Sendet ein Subscribe an den Broker."""
+        """
+        Sendet ein Subscribe an den Broker und merkt sich das Abo.
+
+        Returns:
+            True = Broker hat Empfang bestaetigt, False = keine Bestaetigung.
+            Das Abo wird in beiden Faellen gemerkt und spaeter erneuert.
+        """
         self._require_broker_mac()
         self._require_topic(topic_filter)
 
-        return self.esp.send_json(self.broker_mac, {
+        if topic_filter not in self._abos:
+            self._abos.append(topic_filter)
+
+        return self._sende_an_broker({
             "_proto": self.PROTO,
             "type": "subscribe",
             "topic": topic_filter,
         })
 
     def unsubscribe(self, topic_filter):
-        """Sendet ein Unsubscribe an den Broker."""
+        """Sendet ein Unsubscribe an den Broker und vergisst das Abo."""
         self._require_broker_mac()
         self._require_topic(topic_filter)
 
-        return self.esp.send_json(self.broker_mac, {
+        if topic_filter in self._abos:
+            self._abos.remove(topic_filter)
+
+        return self._sende_an_broker({
             "_proto": self.PROTO,
             "type": "unsubscribe",
             "topic": topic_filter,
         })
 
     def publish(self, topic, payload):
-        """Sendet ein Publish an den Broker."""
+        """
+        Sendet ein Publish an den Broker.
+
+        Returns:
+            True = Broker hat Empfang bestaetigt, False = keine Bestaetigung.
+        """
         self._require_broker_mac()
         self._require_topic(topic)
 
-        return self.esp.send_json(self.broker_mac, {
+        return self._sende_an_broker({
             "_proto": self.PROTO,
             "type": "publish",
             "topic": topic,
             "payload": payload,
         })
+
+    def erneuere_abos(self):
+        """
+        Sendet alle gemerkten Abos erneut an den Broker.
+
+        Wurde vorher connect_id() benutzt, wird zuerst die Anmeldung
+        wiederholt (noetig, wenn der Broker require_connect=True nutzt).
+        Doppelte Abos sind unschaedlich: Der Broker speichert je Filter
+        eine Menge von Clients, es entstehen keine doppelten Nachrichten.
+
+        Returns:
+            Anzahl der erneuerten Abos.
+        """
+        self._require_broker_mac()
+        self._letzte_erneuerung_ms = time.ticks_ms()
+
+        # "erneuerung": True -> Broker antwortet nicht mit ack/connack,
+        # damit regelmaessige Erneuerungen das Programm nicht stoeren.
+        if self._client_id is not None:
+            self._sende_an_broker({
+                "_proto": self.PROTO,
+                "type": "connect",
+                "client_id": self._client_id,
+                "erneuerung": True,
+            })
+
+        for topic_filter in self._abos:
+            self._sende_an_broker({
+                "_proto": self.PROTO,
+                "type": "subscribe",
+                "topic": topic_filter,
+                "erneuerung": True,
+            })
+
+        return len(self._abos)
+
+    def resubscribe(self):
+        """Englischer Alias fuer erneuere_abos()."""
+        return self.erneuere_abos()
+
+    def list_abos(self):
+        """Gibt die gemerkten Abos dieses Clients zurueck."""
+        return list(self._abos)
 
     def connect_id(self, client_id, timeout_ms=800, max_nachrichten=4):
         """
@@ -78,7 +174,10 @@ class ESPNowMQTT:
         self._require_broker_mac()
         self._require_client_id(client_id)
 
-        self.esp.send_json(self.broker_mac, {
+        # Merken, damit erneuere_abos() die Anmeldung wiederholen kann.
+        self._client_id = client_id
+
+        self._sende_an_broker({
             "_proto": self.PROTO,
             "type": "connect",
             "client_id": client_id,
@@ -117,15 +216,22 @@ class ESPNowMQTT:
 
         Returns:
             (msg_type, data, sender)
-            msg_type ist z. B. "deliver", "ack", "other" oder None.
+            msg_type ist z. B. "deliver", "ack", "connack", "broker_start",
+            "other" oder None.
+            "other": Nachricht in fremdem Protokoll oder kein gueltiges JSON;
+            data ist dann das Dictionary bzw. der Rohtext.
+            "broker_start": Der eigene Broker wurde neu gestartet; die Abos
+            wurden bereits automatisch erneuert.
         """
         start_ms = None
         if nur_nicht_none and wartezeit_ms is not None:
             start_ms = time.ticks_ms()
 
         while True:
-            data, sender = self.esp.receive_json(timeout_ms=timeout_ms)
-            if data is None:
+            self._pruefe_abo_erneuerung()
+
+            data, roh, sender = self._empfange(timeout_ms)
+            if sender is None:
                 if nur_nicht_none:
                     if start_ms is not None:
                         vergangen_ms = time.ticks_diff(time.ticks_ms(), start_ms)
@@ -134,10 +240,24 @@ class ESPNowMQTT:
                     continue
                 return None, None, None
 
+            if data is None:
+                # Kein JSON oder kein Dictionary (z. B. esp.send(mac, "Hallo"))
+                return "other", roh, sender
+
             if data.get("_proto") != self.PROTO:
                 return "other", data, sender
 
-            return data.get("type"), data, sender
+            msg_type = data.get("type")
+
+            if msg_type == "broker_start":
+                if self._ist_eigener_broker(sender):
+                    if self._abos or self._client_id is not None:
+                        self.erneuere_abos()
+                    return "broker_start", data, sender
+                # broker_start eines anderen Brokers im Raum
+                return "other", data, sender
+
+            return msg_type, data, sender
 
     def zeige_nachrichten(
         self,
@@ -176,6 +296,9 @@ class ESPNowMQTT:
 
             elif msg_type == "ack":
                 print("Broker-ACK:", data.get("message"))
+
+            elif msg_type == "broker_start":
+                print("Broker wurde neu gestartet, Abos erneuert.")
 
             elif msg_type == "other":
                 if zeige_fremdprotokoll:
@@ -259,14 +382,43 @@ class ESPNowMQTT:
     # Broker-Helfer
     # ================================================================
 
+    def broker_start(self):
+        """
+        Meldet per Broadcast, dass der Broker (neu) gestartet wurde.
+
+        Clients mit dieser Broker-MAC erneuern daraufhin automatisch ihre
+        Abos. Wird im Konstruktor aufgerufen, wenn keine broker_mac
+        uebergeben wurde.
+
+        Returns:
+            True, wenn die Meldung gesendet werden konnte.
+        """
+        return self._sende_sicher(self.esp.BROADCAST_MAC, {
+            "_proto": self.PROTO,
+            "type": "broker_start",
+        })
+
     def add_subscription(self, sender_mac, topic_filter):
-        """Merkt ein Topic-Filter fuer einen Client."""
+        """
+        Merkt ein Topic-Filter fuer einen Client.
+
+        Returns:
+            True, wenn das Abo neu ist, False, wenn es schon bestand.
+        """
         self._require_topic(topic_filter)
 
         if topic_filter not in self._subscriptions:
             self._subscriptions[topic_filter] = set()
 
-        self._subscriptions[topic_filter].add(sender_mac)
+        # Je Filter eine Menge (set) von Client-MACs: Ein doppeltes
+        # Subscribe (z. B. durch erneuere_abos()) traegt den Client nicht
+        # zweimal ein und erzeugt daher keine doppelten Nachrichten.
+        clients = self._subscriptions[topic_filter]
+        if sender_mac in clients:
+            return False
+
+        clients.add(sender_mac)
+        return True
 
     def remove_subscription(self, sender_mac, topic_filter):
         """Entfernt ein Topic-Filter fuer einen Client."""
@@ -282,7 +434,7 @@ class ESPNowMQTT:
 
     def send_ack(self, sender_mac, text):
         """Sendet eine kurze Bestaetigung an den Client."""
-        self.esp.send_json(sender_mac, {
+        return self._sende_sicher(sender_mac, {
             "_proto": self.PROTO,
             "type": "ack",
             "message": text,
@@ -300,7 +452,7 @@ class ESPNowMQTT:
         if client_id is not None:
             paket["client_id"] = client_id
 
-        self.esp.send_json(sender_mac, paket)
+        return self._sende_sicher(sender_mac, paket)
 
     def list_clients(self):
         """Liefert aktuelle Broker-Client-Zuordnung als Liste fuer Debug-Zwecke."""
@@ -325,7 +477,9 @@ class ESPNowMQTT:
             empfaenger.remove(sender_mac)
 
         for client_mac in empfaenger:
-            self.esp.send_json(client_mac, {
+            # Fehler bei einem Client stoppen nicht die Weiterleitung
+            # an die anderen.
+            self._sende_sicher(client_mac, {
                 "_proto": self.PROTO,
                 "type": "deliver",
                 "topic": topic,
@@ -339,19 +493,69 @@ class ESPNowMQTT:
         """
         Verarbeitet genau eine eingehende Broker-Nachricht.
 
+        Fremde oder kaputte Nachrichten (kein JSON, kein Dictionary,
+        anderes Protokoll) werden ignoriert; der Broker laeuft weiter.
+
         Returns:
             True, wenn eine gueltige Broker-Nachricht verarbeitet wurde,
             sonst False.
         """
-        data, sender = self.esp.receive_json(timeout_ms=timeout_ms)
+        data, roh, sender = self._empfange(timeout_ms)
+        if sender is None:
+            return False
+
         if data is None:
+            print("Ignoriere ungueltige Nachricht von {}: {}".format(sender, roh))
             return False
 
         if data.get("_proto") != self.PROTO:
             print("Ignoriere Fremdprotokoll von {}: {}".format(sender, data))
             return False
 
+        try:
+            return self._verarbeite_broker_nachricht(data, sender)
+        except Exception as exc:
+            # Letzte Sicherung: Ein Fehler bei einer einzelnen Nachricht
+            # darf den Broker nicht beenden.
+            print("Fehler bei Nachricht von {}: {}".format(sender, exc))
+            return False
+
+    @staticmethod
+    def topic_matches(topic_filter, topic):
+        """Prueft Topic-Wildcards (+ und #) im MQTT-Stil."""
+        filter_levels = topic_filter.split("/")
+        topic_levels = topic.split("/")
+
+        i = 0
+        while i < len(filter_levels):
+            f_level = filter_levels[i]
+
+            if f_level == "#":
+                return i == len(filter_levels) - 1
+
+            if i >= len(topic_levels):
+                return False
+
+            t_level = topic_levels[i]
+            if f_level != "+" and f_level != t_level:
+                return False
+
+            i += 1
+
+        return i == len(topic_levels)
+
+    # ================================================================
+    # Interne Helfer
+    # ================================================================
+
+    def _verarbeite_broker_nachricht(self, data, sender):
         msg_type = data.get("type")
+        erneuerung = bool(data.get("erneuerung"))
+
+        if msg_type in self._CLIENT_TYPEN:
+            # z. B. ack oder broker_start eines anderen Brokers im Raum:
+            # nicht beantworten, sonst entsteht ein Endlos-Ping-Pong.
+            return False
 
         if msg_type == "connect":
             client_id = data.get("client_id")
@@ -365,9 +569,14 @@ class ESPNowMQTT:
                 self.send_connack(sender, False, reason="id_in_use")
                 return True
 
+            neu = not self._is_connected(sender) or \
+                self._clients_by_mac[sender].get("client_id") != client_id
             self._register_client(sender, client_id)
-            print("Connect von {} als {}".format(sender, client_id))
-            self.send_connack(sender, True, reason="ok", client_id=client_id)
+
+            if neu:
+                print("Connect von {} als {}".format(sender, client_id))
+            if not erneuerung:
+                self.send_connack(sender, True, reason="ok", client_id=client_id)
             return True
 
         if self.require_connect and not self._is_connected(sender):
@@ -377,9 +586,11 @@ class ESPNowMQTT:
         if msg_type == "subscribe":
             topic_filter = data.get("topic")
             if self._is_topic(topic_filter):
-                self.add_subscription(sender, topic_filter)
-                print("Subscribe von {} auf {}".format(sender, topic_filter))
-                self.send_ack(sender, "subscribed: {}".format(topic_filter))
+                neu = self.add_subscription(sender, topic_filter)
+                if neu:
+                    print("Subscribe von {} auf {}".format(sender, topic_filter))
+                if not erneuerung:
+                    self.send_ack(sender, "subscribed: {}".format(topic_filter))
             else:
                 self.send_ack(sender, "ungueltiges subscribe")
             return True
@@ -412,33 +623,61 @@ class ESPNowMQTT:
         self.send_ack(sender, "unbekannter type")
         return True
 
-    @staticmethod
-    def topic_matches(topic_filter, topic):
-        """Prueft Topic-Wildcards (+ und #) im MQTT-Stil."""
-        filter_levels = topic_filter.split("/")
-        topic_levels = topic.split("/")
+    def _empfange(self, timeout_ms):
+        """
+        Empfaengt eine Nachricht, ohne bei ungueltigem Inhalt abzustuerzen.
 
-        i = 0
-        while i < len(filter_levels):
-            f_level = filter_levels[i]
+        Returns:
+            (data, roh, sender)
+            - keine Nachricht:           (None, None, None)
+            - gueltiges JSON-Dictionary: (dict, roh, sender)
+            - sonstiger Inhalt:          (None, roh, sender)
+        """
+        roh, sender = self.esp.receive(timeout_ms=timeout_ms, decode=True)
+        if roh is None:
+            return None, None, None
 
-            if f_level == "#":
-                return i == len(filter_levels) - 1
+        try:
+            data = json.loads(roh)
+        except Exception:
+            return None, roh, sender
 
-            if i >= len(topic_levels):
-                return False
+        if not isinstance(data, dict):
+            return None, roh, sender
 
-            t_level = topic_levels[i]
-            if f_level != "+" and f_level != t_level:
-                return False
+        return data, roh, sender
 
-            i += 1
+    def _sende_an_broker(self, paket):
+        return self.esp.send_json(self.broker_mac, paket)
 
-        return i == len(topic_levels)
+    def _sende_sicher(self, mac, paket):
+        """Sendet und faengt Fehler ab (Broker darf nicht abstuerzen)."""
+        try:
+            return self.esp.send_json(mac, paket)
+        except Exception as exc:
+            print("Senden an {} fehlgeschlagen: {}".format(mac, exc))
+            return False
 
-    # ================================================================
-    # Interne Helfer
-    # ================================================================
+    def _pruefe_abo_erneuerung(self):
+        if self.abo_erneuern_ms is None or not self.broker_mac:
+            return
+        if not self._abos and self._client_id is None:
+            return
+
+        vergangen_ms = time.ticks_diff(time.ticks_ms(), self._letzte_erneuerung_ms)
+        if vergangen_ms >= self.abo_erneuern_ms:
+            try:
+                self.erneuere_abos()
+            except Exception as exc:
+                print("Abo-Erneuerung fehlgeschlagen:", exc)
+
+    def _ist_eigener_broker(self, sender):
+        if not self.broker_mac or sender is None:
+            return False
+        try:
+            return self.esp._normalize_mac_str(self.broker_mac) == sender
+        except Exception:
+            return False
 
     def _require_broker_mac(self):
         if not self.broker_mac:

@@ -24,8 +24,8 @@ Konventionen fuer neue Bibliotheken sind in [`.github/copilot-instructions.md`](
 | Ultraschall | `ULTRASCHALL/nitbw_ultraschall.py` | `ULTRASCHALL/beispiel_ultraschall.py`, `ULTRASCHALL/beispiel_ultraschall_einparkhilfe.py` | 1.0.0 |
 | TOF | `TOF/nitbw_tof.py` | `TOF/beispiel_tof.py`, `TOF/beispiel_tof_modi.py`, `TOF/beispiel_tof_kalibrierung.py` | 1.2.0 |
 | TCS3200 | `TCS3200/nitbw_tcs3200.py` | `TCS3200/beispiel_tcs3200.py`, `TCS3200/beispiel_tcs3200_rgb.py` | 1.0.0 |
-| ESPNOW | `ESPNOW/nitbw_espnow.py` | `ESPNOW/beispiel_espnow.py`, `ESPNOW/beispiel_espnow_json.py` | 1.0.0 |
-| ESPNOW-MQTT | `ESPNOW/nitbw_espnow_mqtt.py` | `ESPNOW/beispiel_espnow_mqtt_broker.py`, `ESPNOW/beispiel_espnow_mqtt_client_publish.py`, `ESPNOW/beispiel_espnow_mqtt_client_subscribe.py` | 2.0.0 |
+| ESPNOW | `ESPNOW/nitbw_espnow.py` | `ESPNOW/beispiel_espnow.py`, `ESPNOW/beispiel_espnow_json.py` | 1.1.0 |
+| ESPNOW-MQTT | `ESPNOW/nitbw_espnow_mqtt.py` | `ESPNOW/beispiel_espnow_mqtt_broker.py`, `ESPNOW/beispiel_espnow_mqtt_client_publish.py`, `ESPNOW/beispiel_espnow_mqtt_client_subscribe.py` | 2.1.0 |
 | MQTT | `MQTT/nitbw_mqtt.py` | `MQTT/beispiel_mqtt.py`, `MQTT/beispiel_mqtt_reconnect.py` | 1.0.0 |
 | MP3 | `MP3/nitbw_mp3.py` | `MP3/beispiel_mp3.py`, `MP3/beispiel_mp3_ordner.py` | 1.0.0 |
 | INA219 | `INA219/nitbw_ina219.py` | `INA219/beispiel_ina219.py`, `INA219/beispiel_ina219_lastprofil.py` | 1.0.0 |

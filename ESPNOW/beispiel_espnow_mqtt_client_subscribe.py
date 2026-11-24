@@ -2,6 +2,10 @@
 Beispiel fuer NIT Bibliothek: ESPNOW Broker-Client (subscribe)
 Zeigt: Minimaler Subscribe-Client mit optionalem connect_id
 Hardware: 1x ESP32 als Broker, 1x ESP32 als Client
+
+Nach einem Neustart des Brokers erneuert der Client seine Abos
+automatisch: sofort, wenn die Meldung "broker_start" ankommt, und
+zusaetzlich spaetestens nach ABO_ERNEUERN_MS.
 """
 
 from nitbw_espnow import ESPNow
@@ -16,10 +20,13 @@ USE_CONNECT_ID = True
 # Maximale Wartezeit auf die naechste Nachricht in Millisekunden.
 # None bedeutet unbegrenzt warten.
 WARTEZEIT_MS = None
+# Abos regelmaessig erneuern (Sicherheit, falls "broker_start" verpasst wurde).
+# None schaltet die automatische Erneuerung aus.
+ABO_ERNEUERN_MS = 60000
 
 # --- Initialisierung ---
 esp = ESPNow()
-mqtt = ESPNowMQTT(esp, BROKER_MAC)
+mqtt = ESPNowMQTT(esp, BROKER_MAC, abo_erneuern_ms=ABO_ERNEUERN_MS)
 
 print("=== ESPNOW Broker-Client (subscribe) ===")
 print("Eigene MAC:", esp.get_mac())
